@@ -1,23 +1,29 @@
-const express = require('express');
+import express from 'express';
+import * as authController from '../controllers/Authcontroller.js';
+
 const router = express.Router();
-const { register, login } = require('../controllers/Authcontroller.js');
-const userController = require('../controllers/userController.js');
 
-// Auth routes
-router.post('/register', register);
-router.post('/login', login);
+// ─── Auth ──────────────────────────────────────────────────────────────────────
+router.post('/register', authController.createUser);
+router.post('/login',    authController.loginUser);
+router.post('/logout',   authController.logoutUser);
 
-// User routes
-router.post('/create', userController.createUser);
-router.post('/logout', userController.logoutUser);
-router.get('/me', userController.getMyProfile);
-router.get('/users', userController.getAllUsers);
-router.put('/me', userController.updateMyProfile);
-router.delete('/me', userController.deleteOwnAccount);
-router.post('/forgot-password', userController.forgotPassword);
-router.post('/reset-password', userController.resetPassword);
-router.get('/search', userController.searchUser);
-router.post('/block/:id', userController.blockUser);
-router.post('/unblock/:id', userController.unblockUser);
+// ─── Profile ───────────────────────────────────────────────────────────────────
+router.get('/me',    authController.getMyProfile);
+router.put('/me',    authController.updateMyProfile);
+router.delete('/me', authController.deleteOwnAccount);
 
-module.exports = router;
+// ─── Users ─────────────────────────────────────────────────────────────────────
+router.get('/users',  authController.getAllUsers);
+router.get('/search', authController.searchUser);
+
+// ─── Password Reset ────────────────────────────────────────────────────────────
+router.post('/forgot-password',              authController.forgotPassword);
+router.post('/reset-password',               authController.resetPassword);          // OTP flow
+router.post('/reset-password/:token',        authController.resetPasswordByToken);   // link flow
+
+// ─── Admin: activate / deactivate ─────────────────────────────────────────────
+router.post('/block/:id',   authController.blockUser);   // legacy name kept
+router.post('/unblock/:id', authController.unblockUser); // legacy name kept
+
+export default router;

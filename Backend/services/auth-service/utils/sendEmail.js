@@ -1,19 +1,13 @@
-import nodemailer from 'nodemailer';
-
-export async function sendWelcomeEmail(email, firstName) {
-  // Implement your email sending logic here
-  // Example: send a welcome email
-  return true;
-}
-
-export async function sendOtpEmail(email, firstName, otp) {
-  // Implement your email sending logic here
-  // Example: send OTP email
-  return true;
-}
-
-export async function sendPasswordResetSuccessEmail(email, firstName) {
-  // Implement your email sending logic here
-  // Example: send password reset success email
-  return true;
-}
+// Temporary mock for email microservice integration
+export const sendWelcomeEmail = async (...args) => {
+  console.log('Mock sendWelcomeEmail', ...args);
+};
+export const sendOtpEmail = async (...args) => {
+  console.log('Mock sendOtpEmail', ...args);
+};
+export const sendPasswordResetSuccessEmail = async (...args) => {
+  console.log('Mock sendPasswordResetSuccessEmail', ...args);
+};
+export const sendEmail = async (...args) => {
+  console.log('Mock sendEmail', ...args);
+};
