@@ -10,13 +10,31 @@ const RegisterPage = () => {
   const [role, setRole] = useState("patient");
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (firstName && lastName && phone && email && password) {
+    if (!(firstName && lastName && phone && email && password)) {
+      alert("Please fill all fields.");
+      return;
+    }
+
+    try {
+      const res = await fetch("http://localhost:3008/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ firstName, lastName, phone, email, password, role }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        const msg = errorData?.message || "Registration failed";
+        throw new Error(msg);
+      }
+
       alert("Registration successful! Please log in.");
       navigate("/login");
-    } else {
-      alert("Please fill all fields.");
+    } catch (error) {
+      alert(error.message || "Registration failed");
     }
   };
 
@@ -86,7 +104,17 @@ const RegisterPage = () => {
             />
           </label>
 
-          <input type="hidden" value={role} readOnly />
+          <label className="block">
+            <span className="text-sm font-medium text-slate-700">Account Type</span>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-slate-900 focus:border-blue-500 focus:outline-none"
+            >
+              <option value="patient">Patient</option>
+              <option value="doctor">Doctor</option>
+            </select>
+          </label>
 
           <button
             type="submit"
