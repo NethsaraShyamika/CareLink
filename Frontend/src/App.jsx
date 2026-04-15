@@ -11,6 +11,7 @@ import PaymentHistory from "./pages/patient/PaymentHistory";
 import LoginPage from "./pages/shared/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import PatientDashboard from "./pages/patient/PatientDashboard";
+import DoctorDashboard from "./pages/doctor/DoctorDashboard";
 import SymptomCheck from "./pages/patient/Symptomcheck";
 import SymptomHistory from "./pages/patient/Symptomhistory";
 
@@ -24,21 +25,14 @@ function App() {
     <Router>
       <Routes>
 
-        {/* Home */}
-        <Route
-          path="/"
-          element={
-            <div className="min-h-screen flex items-center justify-center bg-gray-900">
-              <h1 className="text-4xl font-bold text-blue-400">
-                CareLink 🚀
-              </h1>
-            </div>
-          }
-        />
+
+        {/* Redirect root to login */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
 
         {/* Auth */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+
 
         {/* Patient */}
         <Route path="/patient/dashboard" element={<PatientDashboard />} />
@@ -47,8 +41,11 @@ function App() {
         <Route path="/payments/history" element={<PaymentHistory />} />
 
 
+        {/* Doctor */}
+        <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
+
         {/* Admin */}
-        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
         {/* Video Call */}
         <Route

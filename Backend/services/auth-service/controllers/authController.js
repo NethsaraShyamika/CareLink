@@ -84,15 +84,14 @@ export async function loginUser(req, res) {
     const user = await User.findOne({ email }).select('+password');
     if (!user) return res.status(401).json({ message: 'Invalid credentials' });
 
-    // No isBlocked field in new model
-
     const isPasswordCorrect = await bcrypt.compare(password, user.password);
     if (!isPasswordCorrect) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     const payload = {
-      id: user.id,
+      id: user._id,           // ✅ use _id consistently
+      userId: user.userId,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
@@ -102,6 +101,7 @@ export async function loginUser(req, res) {
       phone: user.phone,
     };
 
+    const JWT_SECRET = process.env.JWT_SECRET || 'mysecretkey123'; // ✅ consistent
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '48h' });
 
     req.session.user = payload;
@@ -109,13 +109,18 @@ export async function loginUser(req, res) {
       if (err) console.log('Session save error:', err);
     });
 
-    return res.json({ message: 'Login successful', token, role: user.role, userId: user._id });
+    return res.json({ 
+      message: 'Login successful', 
+      token, 
+      role: user.role, 
+      userId: user._id,
+      user: payload        // ✅ frontend can use this too
+    });
   } catch (error) {
     console.log('Error in loginUser:', error);
     res.status(500).json({ message: 'Error logging in user' });
   }
 }
-
 // ─── Logout ────────────────────────────────────────────────────────────────────
 
 export async function logoutUser(req, res) {

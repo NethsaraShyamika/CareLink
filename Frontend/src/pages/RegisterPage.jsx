@@ -7,7 +7,7 @@ const RegisterPage = () => {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role] = useState("patient");
+  const [role, setRole] = useState("patient");
   const navigate = useNavigate();
 
   const handleSubmit = (e) => {

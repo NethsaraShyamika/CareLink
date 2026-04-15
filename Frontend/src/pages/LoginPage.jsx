@@ -12,7 +12,6 @@ const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
       const res = await fetch("http://localhost:3008/api/auth/login", {
         method: "POST",
@@ -20,30 +19,22 @@ const LoginPage = () => {
         body: JSON.stringify({ email, password })
       });
 
-      if (!res.ok) throw new Error("Invalid credentials");
-
       const data = await res.json();
 
-      // EXPECTED: { token, role }
-      const { token, role } = data;
+      if (!res.ok) throw new Error(data.message || "Invalid credentials");
+
+      const { token, role, user } = data;
 
       if (!token) throw new Error("No token received from server");
 
       localStorage.setItem("token", token);
 
-      // Save user globally (NO PROFILE FETCH HERE)
-      login({ token, role });
+      login({ ...user, token, role });
 
-      // ROLE-BASED REDIRECT
-      if (role === "patient") {
-        navigate("/patient/dashboard");
-      } else if (role === "doctor") {
-        navigate("/doctor/dashboard");
-      } else if (role === "admin") {
-        navigate("/admin/dashboard");
-      } else {
-        throw new Error("Unknown role");
-      }
+      if (role === "patient") navigate("/patient/dashboard");
+      else if (role === "doctor") navigate("/doctor/dashboard");
+      else if (role === "admin") navigate("/admin/dashboard");
+      else throw new Error("Unknown role");
 
     } catch (err) {
       alert(err.message || "Login failed");
@@ -59,8 +50,6 @@ const LoginPage = () => {
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-
-          {/* EMAIL */}
           <div>
             <label className="block text-gray-700 mb-2">Email Address</label>
             <input
@@ -72,7 +61,6 @@ const LoginPage = () => {
             />
           </div>
 
-          {/* PASSWORD */}
           <div>
             <label className="block text-gray-700 mb-2">Password</label>
             <input
@@ -84,7 +72,6 @@ const LoginPage = () => {
             />
           </div>
 
-          {/* REMEMBER */}
           <div className="flex items-center justify-between">
             <label className="flex items-center">
               <input
@@ -94,26 +81,21 @@ const LoginPage = () => {
               />
               <span className="ml-2">Remember Me</span>
             </label>
-
-            <a href="#" className="text-blue-600 text-sm">
-              Forgot Password?
-            </a>
+            <a href="#" className="text-blue-600 text-sm">Forgot Password?</a>
           </div>
 
-          {/* BUTTON */}
           <button
             type="submit"
-            className="w-full bg-blue-800 text-white py-2 rounded-lg"
+            className="w-full bg-blue-800 text-white py-2 rounded-lg hover:bg-blue-900 transition"
           >
             LOG IN
           </button>
         </form>
 
-        {/* REGISTER */}
         <div className="mt-6">
           <button
             onClick={() => navigate("/register")}
-            className="w-full border border-blue-700 text-blue-700 py-2 rounded-lg"
+            className="w-full border border-blue-700 text-blue-700 py-2 rounded-lg hover:bg-blue-50 transition"
           >
             Don't have an account? Register
           </button>
@@ -124,4 +106,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default LoginPage;  // ✅ THIS LINE IS CRITICAL
