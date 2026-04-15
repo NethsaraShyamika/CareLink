@@ -22,6 +22,7 @@ function App() {
     <Router>
       <Routes>
 
+        {/* Home */}
         <Route
           path="/"
           element={
@@ -33,16 +34,17 @@ function App() {
           }
         />
 
+        {/* Auth */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
+        {/* Patient */}
         <Route path="/patient/dashboard" element={<PatientDashboard />} />
 
+        {/* Admin */}
         <Route path="/admin" element={<AdminDashboard />} />
 
-        <Route path="/payment/success" element={<PaymentSuccess />} />
-        <Route path="/payment/fail" element={<PaymentFail />} />
-
+        {/* Video Call */}
         <Route
           path="/video"
           element={
@@ -53,6 +55,22 @@ function App() {
           }
         />
 
+        {/* Payment */}
+        <Route path="/payment/success" element={<PaymentSuccess />} />
+        <Route path="/payment/fail" element={<PaymentFail />} />
+
+        {/* Redirect old route */}
+        <Route
+          path="/join-consultation"
+          element={
+            <Navigate
+              to={`/video?appointmentId=${getQueryParam("appointmentId")}&role=${getQueryParam("role")}`}
+              replace
+            />
+          }
+        />
+
+        {/* fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
 
       </Routes>
