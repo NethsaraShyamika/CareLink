@@ -1,29 +1,26 @@
 import express from 'express';
 import * as authController from '../controllers/Authcontroller.js';
+import { verifyToken, requireRole, isAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// ─── Auth ──────────────────────────────────────────────────────────────────────
+// ─── Public Routes (No Authentication Required) ────────────────────────────────
 router.post('/register', authController.createUser);
-router.post('/login',    authController.loginUser);
-router.post('/logout',   authController.logoutUser);
+router.post('/login', authController.loginUser);
+router.post('/logout', authController.logoutUser);
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password', authController.resetPassword);
+router.post('/reset-password/:token', authController.resetPasswordByToken);
 
-// ─── Profile ───────────────────────────────────────────────────────────────────
-router.get('/me',    authController.getMyProfile);
-router.put('/me',    authController.updateMyProfile);
-router.delete('/me', authController.deleteOwnAccount);
+// ─── Protected Routes (Authentication Required) ────────────────────────────────
+router.get('/me', verifyToken, authController.getMyProfile);
+router.put('/me', verifyToken, authController.updateMyProfile);
+router.delete('/me', verifyToken, authController.deleteOwnAccount);
+router.get('/search', verifyToken, authController.searchUser);
 
-// ─── Users ─────────────────────────────────────────────────────────────────────
-router.get('/users',  authController.getAllUsers);
-router.get('/search', authController.searchUser);
-
-// ─── Password Reset ────────────────────────────────────────────────────────────
-router.post('/forgot-password',              authController.forgotPassword);
-router.post('/reset-password',               authController.resetPassword);          // OTP flow
-router.post('/reset-password/:token',        authController.resetPasswordByToken);   // link flow
-
-// ─── Admin: activate / deactivate ─────────────────────────────────────────────
-router.post('/block/:id',   authController.blockUser);   // legacy name kept
-router.post('/unblock/:id', authController.unblockUser); // legacy name kept
+// ─── Admin Routes (Admin Only) ─────────────────────────────────────────────────
+router.get('/users', verifyToken, requireRole('admin'), authController.getAllUsers);
+router.post('/block/:id', verifyToken, requireRole('admin'), authController.blockUser);
+router.post('/unblock/:id', verifyToken, requireRole('admin'), authController.unblockUser);
 
 export default router;

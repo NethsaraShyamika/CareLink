@@ -111,20 +111,14 @@ const userSchema = new mongoose.Schema(
 
 // ─── Auto-increment userId before saving ──────────────────────────────────────
 
-userSchema.pre('save', async function (next) {
-  if (!this.isNew) return next(); // only run on new documents
-
-  try {
-    const counter = await Counter.findByIdAndUpdate(
-      { _id: 'userId' },
-      { $inc: { seq: 1 } },
-      { new: true, upsert: true }
-    );
-    this.userId = counter.seq;
-    next();
-  } catch (err) {
-    next(err);
-  }
+userSchema.pre('save', async function () {
+  if (!this.isNew) return;
+  const counter = await Counter.findByIdAndUpdate(
+    { _id: 'userId' },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  );
+  this.userId = counter.seq;
 });
 
 // ─── Export ────────────────────────────────────────────────────────────────────
