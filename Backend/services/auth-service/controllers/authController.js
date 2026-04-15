@@ -18,30 +18,28 @@ export async function createUser(req, res) {
       firstName: data.firstName,
       lastName: data.lastName,
       password: passwordHash,
-      phone: data.phone || null,
+      phone: data.phone,
       role: data.role || 'patient',
-      dateOfBirth: data.dateOfBirth || null,
-      gender: data.gender || null,
     });
 
     await newUser.save();
 
-    try {
-      await sendWelcomeEmail(data.email, data.firstName);
-    } catch (emailError) {
-      console.log('Welcome email sending failed:', emailError.message);
-    }
+    // Email sending temporarily disabled for development
+    // try {
+    //   await sendWelcomeEmail(data.email, data.firstName);
+    // } catch (emailError) {
+    //   console.log('Welcome email sending failed:', emailError.message);
+    // }
 
     const payload = {
-      id: newUser._id,
+      id: newUser.id,
       email: newUser.email,
       firstName: newUser.firstName,
       lastName: newUser.lastName,
       role: newUser.role,
-      isAdmin: newUser.isAdmin,
-      isBlocked: newUser.isBlocked,
+      isActive: newUser.isActive,
       isEmailVerified: newUser.isEmailVerified,
-      image: newUser.image,
+      phone: newUser.phone,
     };
 
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '48h' });
@@ -76,9 +74,7 @@ export async function loginUser(req, res) {
     const user = await User.findOne({ email }).select('+password');
     if (!user) return res.status(401).json({ message: 'Invalid credentials' });
 
-    if (user.isBlocked) {
-      return res.status(403).json({ message: 'User is blocked by admin' });
-    }
+    // No isBlocked field in new model
 
     const isPasswordCorrect = await bcrypt.compare(password, user.password);
     if (!isPasswordCorrect) {
@@ -86,16 +82,14 @@ export async function loginUser(req, res) {
     }
 
     const payload = {
-      id: user._id,
-      userId: user._id,         // alias used in some middlewares
+      id: user.id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
-      isAdmin: user.isAdmin,
-      isBlocked: user.isBlocked,
+      isActive: user.isActive,
       isEmailVerified: user.isEmailVerified,
-      image: user.image,
+      phone: user.phone,
     };
 
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '48h' });
@@ -159,32 +153,17 @@ export async function updateMyProfile(req, res) {
       return res.status(401).json({ message: 'Not authenticated – user ID missing' });
     }
 
-    if (req.body.isAdmin !== undefined || req.body.isBlocked !== undefined) {
-      return res.status(403).json({ message: 'You cannot change system fields' });
-    }
+    // No isAdmin or isBlocked fields in new model
 
-    const { email, firstName, lastName, password, phone, dateOfBirth, gender } = req.body;
+    const { email, firstName, lastName, password, phone } = req.body;
     const updateData = {};
 
     if (email)       updateData.email       = email;
     if (firstName)   updateData.firstName   = firstName;
     if (lastName)    updateData.lastName    = lastName;
     if (phone)       updateData.phone       = phone;
-    if (dateOfBirth) updateData.dateOfBirth = dateOfBirth;
-    if (gender)      updateData.gender      = gender;
 
-    if (req.file) {
-      updateData.image = `/uploads/profiles/${req.file.filename}`;
-    } else if (req.body.image) {
-      updateData.image = req.body.image;
-    }
-
-    if (
-      password &&
-      password.trim() !== '' &&
-      !password.startsWith('google_oauth_') &&
-      !password.startsWith('facebook_oauth_')
-    ) {
+    if (password && password.trim() !== '') {
       updateData.password = await bcrypt.hash(password, 10);
     }
 
@@ -193,16 +172,14 @@ export async function updateMyProfile(req, res) {
 
     const newToken = jwt.sign(
       {
-        id: updatedUser._id,
-        userId: updatedUser._id,
+        id: updatedUser.id,
         email: updatedUser.email,
         firstName: updatedUser.firstName,
         lastName: updatedUser.lastName,
         role: updatedUser.role,
-        isAdmin: updatedUser.isAdmin,
-        isBlocked: updatedUser.isBlocked,
-        image: updatedUser.image,
-        uid: updatedUser.uid,
+        isActive: updatedUser.isActive,
+        isEmailVerified: updatedUser.isEmailVerified,
+        phone: updatedUser.phone,
       },
       JWT_SECRET,
       { expiresIn: '48h' }
@@ -214,9 +191,8 @@ export async function updateMyProfile(req, res) {
         email: updatedUser.email,
         firstName: updatedUser.firstName,
         lastName: updatedUser.lastName,
-        image: updatedUser.image,
-        uid: updatedUser.uid,
-        id: updatedUser._id,
+        id: updatedUser.id,
+        phone: updatedUser.phone,
       };
       req.session.save((err) => {
         if (err) console.error('Session update error:', err);
@@ -267,25 +243,24 @@ export async function forgotPassword(req, res) {
 
     await user.save();
 
-    // Send OTP email
-    try {
-      await sendOtpEmail(user.email, user.firstName, otp);
-    } catch (emailError) {
-      console.log('OTP email failed, falling back to generic sendEmail:', emailError.message);
-
-      const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${rawToken}`;
-      await sendEmail({
-        to: user.email,
-        subject: 'Password Reset',
-        html: `
-          <p>Hi ${user.firstName || user.name},</p>
-          <p>Your OTP is <strong>${otp}</strong> (expires in 10 min) or click the link below:</p>
-          <a href="${resetUrl}" style="padding:10px 20px;background:#e63757;color:#fff;border-radius:5px;text-decoration:none">
-            Reset Password
-          </a>
-        `,
-      });
-    }
+    // Email sending temporarily disabled for development
+    // try {
+    //   await sendOtpEmail(user.email, user.firstName, otp);
+    // } catch (emailError) {
+    //   console.log('OTP email failed, falling back to generic sendEmail:', emailError.message);
+    //   const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${rawToken}`;
+    //   await sendEmail({
+    //     to: user.email,
+    //     subject: 'Password Reset',
+    //     html: `
+    //       <p>Hi ${user.firstName || user.name},</p>
+    //       <p>Your OTP is <strong>${otp}</strong> (expires in 10 min) or click the link below:</p>
+    //       <a href="${resetUrl}" style="padding:10px 20px;background:#e63757;color:#fff;border-radius:5px;text-decoration:none">
+    //         Reset Password
+    //       </a>
+    //     `,
+    //   });
+    // }
 
     res.json({ message: 'OTP sent to your email' });
   } catch (error) {
@@ -317,11 +292,12 @@ export async function resetPassword(req, res) {
     user.resetPasswordExpire  = undefined;
     await user.save();
 
-    try {
-      await sendPasswordResetSuccessEmail(user.email, user.firstName);
-    } catch (emailError) {
-      console.log('Reset success email failed:', emailError.message);
-    }
+    // Email sending temporarily disabled for development
+    // try {
+    //   await sendPasswordResetSuccessEmail(user.email, user.firstName);
+    // } catch (emailError) {
+    //   console.log('Reset success email failed:', emailError.message);
+    // }
 
     res.json({ message: 'Password reset successfully' });
   } catch (error) {
@@ -353,11 +329,12 @@ export async function resetPasswordByToken(req, res) {
     user.resetOtpExpiry      = null;
     await user.save();
 
-    try {
-      await sendPasswordResetSuccessEmail(user.email, user.firstName);
-    } catch (emailError) {
-      console.log('Reset success email failed:', emailError.message);
-    }
+    // Email sending temporarily disabled for development
+    // try {
+    //   await sendPasswordResetSuccessEmail(user.email, user.firstName);
+    // } catch (emailError) {
+    //   console.log('Reset success email failed:', emailError.message);
+    // }
 
     res.json({ message: 'Password reset successful' });
   } catch (error) {
@@ -375,10 +352,10 @@ export async function searchUser(req, res) {
 
     const users = await User.find({
       $or: [
-        { uid:       { $regex: `^${query}`, $options: 'i' } },
         { email:     { $regex: `^${query}`, $options: 'i' } },
         { firstName: { $regex: `^${query}`, $options: 'i' } },
         { lastName:  { $regex: `^${query}`, $options: 'i' } },
+        { phone:     { $regex: `^${query}`, $options: 'i' } },
       ],
     }).select('-password');
 
@@ -395,13 +372,8 @@ export async function searchUser(req, res) {
 
 export async function blockUser(req, res) {
   try {
-    const user = await User.findOneAndUpdate(
-      { uid: req.params.id },
-      { isBlocked: true },
-      { new: true }
-    );
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    res.json({ message: 'User blocked successfully' });
+    // No blockUser functionality in new model
+    return res.status(501).json({ message: 'Blocking users is not supported in the current model.' });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: 'Error blocking user' });
@@ -410,13 +382,8 @@ export async function blockUser(req, res) {
 
 export async function unblockUser(req, res) {
   try {
-    const user = await User.findOneAndUpdate(
-      { uid: req.params.id },
-      { isBlocked: false },
-      { new: true }
-    );
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    res.json({ message: 'User unblocked successfully' });
+    // No unblockUser functionality in new model
+    return res.status(501).json({ message: 'Unblocking users is not supported in the current model.' });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: 'Error unblocking user' });
@@ -426,7 +393,6 @@ export async function unblockUser(req, res) {
 // ─── Middleware ────────────────────────────────────────────────────────────────
 
 export function isAdmin(req, res, next) {
-  if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
-  if (!req.user.isAdmin) return res.status(403).json({ message: 'Admin only access' });
-  next();
+  // No isAdmin field in new model
+  return res.status(501).json({ message: 'Admin check is not supported in the current model.' });
 }
