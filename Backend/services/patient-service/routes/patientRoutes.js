@@ -1,17 +1,17 @@
-const express = require('express');
-const router = express.Router();
-const verifyToken = require('../middleware/verifyToken');
-const multer = require('multer');
-const path = require('path');
-
-const {
+import express from 'express';
+import verifyToken from '../middleware/verifyToken.js';
+import multer from 'multer';
+import path from 'path';
+import {
     getProfile,
     createProfile,
     updateProfile,
     uploadReport,
     getReports,
     getPrescriptions
-} = require('../controllers/patientController.js');
+} from '../controllers/patientController.js';
+
+const router = express.Router();
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -49,4 +49,4 @@ router.get('/reports',        verifyToken, getReports);
 // Prescription routes
 router.get('/prescriptions', verifyToken, getPrescriptions);
 
-module.exports = router;
+export default router;

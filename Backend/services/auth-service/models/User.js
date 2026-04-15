@@ -19,7 +19,6 @@ const userSchema = new mongoose.Schema(
       unique: true,
     },
 
-    // 👤 Identity Info
     firstName: {
       type: String,
       required: [true, 'First name is required'],
@@ -36,7 +35,6 @@ const userSchema = new mongoose.Schema(
       maxlength: 50,
     },
 
-    // 📞 Contact
     phone: {
       type: String,
       required: [true, 'Phone is required'],
@@ -44,7 +42,6 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
 
-    // 🔐 Login Identity
     email: {
       type: String,
       required: [true, 'Email is required'],
@@ -59,14 +56,12 @@ const userSchema = new mongoose.Schema(
       select: false, // 🔒 never return password
     },
 
-    // 🧭 System Role
     role: {
       type: String,
       enum: ['patient', 'doctor', 'admin'],
       required: true,
     },
 
-    // ✅ Account status
     isActive: {
       type: Boolean,
       default: true,
@@ -77,7 +72,6 @@ const userSchema = new mongoose.Schema(
       default: false,
     },
 
-    // 🔁 Token management
     refreshToken: {
       type: String,
       default: null,
@@ -93,7 +87,6 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
-    // 🔢 OTP fields
     resetOtp: {
       type: String,
       default: null,

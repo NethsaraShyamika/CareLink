@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { sendWelcomeEmail, sendOtpEmail, sendPasswordResetSuccessEmail, sendEmail } from '../utils/sendEmail.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'icomputers';
+const JWT_SECRET = 'mysecretkey123';
 
 // ─── Register / Create User ────────────────────────────────────────────────────
 

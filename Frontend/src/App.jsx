@@ -14,6 +14,11 @@ import PatientDashboard from "./pages/patient/PatientDashboard";
 import SymptomCheck from "./pages/patient/Symptomcheck";
 import SymptomHistory from "./pages/patient/Symptomhistory";
 
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+
+import PatientDashboard from "./pages/patient/PatientDashboard";
+
 function App() {
   const getQueryParam = (param) => {
     const params = new URLSearchParams(window.location.search);
@@ -45,6 +50,10 @@ function App() {
         <Route path="/patient/symptom-check" element={<SymptomCheck />} />
         <Route path="/patient/symptom-history" element={<SymptomHistory />} />
         <Route path="/payments/history" element={<PaymentHistory />} />
+
+
+        {/* Patient */}
+        <Route path="/patient/dashboard" element={<PatientDashboard />} />
 
         {/* Admin */}
         <Route path="/admin" element={<AdminDashboard />} />
