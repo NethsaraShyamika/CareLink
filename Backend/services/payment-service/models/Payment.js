@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const paymentSchema = new mongoose.Schema(
   {
@@ -41,9 +41,9 @@ const paymentSchema = new mongoose.Schema(
     },
 
     // Gateway-specific IDs
-    gatewayOrderId: String,   // PayHere order_id / Stripe PaymentIntent ID
-    gatewayPaymentId: String, // PayHere payment_id / Stripe charge ID
-    gatewayResponse: Object,  // Raw response from gateway (for debugging)
+    gatewayOrderId: String,
+    gatewayPaymentId: String,
+    gatewayResponse: Object,
 
     // Refund
     refundedAt: Date,
@@ -52,4 +52,6 @@ const paymentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Payment", paymentSchema);
+const Payment = mongoose.model("Payment", paymentSchema);
+
+export default Payment;

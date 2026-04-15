@@ -1,114 +1,130 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
-const userSchema = new mongoose.Schema({
+// ─── Counter Schema (for auto-incrementing userId) ────────────────────────────
 
-  // 👤 Personal Info
-  firstName: {
-    type: String,
-    required: [true, 'First name is required'],
-    trim: true,
-    minlength: [2, 'First name must be at least 2 characters'],
-    maxlength: [50, 'First name cannot exceed 50 characters']
-  },
+const counterSchema = new mongoose.Schema({
+  _id: { type: String, required: true },   // e.g. "userId"
+  seq: { type: Number, default: 0 },
+});
 
-  lastName: {
-    type: String,
-    required: [true, 'Last name is required'],
-    trim: true,
-    minlength: [2, 'Last name must be at least 2 characters'],
-    maxlength: [50, 'Last name cannot exceed 50 characters']
-  },
+const Counter = mongoose.model('Counter', counterSchema);
 
-  phone: {
-    type: String,
-    required: [true, 'Phone number is required'],
-    unique: true,
-    trim: true,
-    validate: {
-      validator: function (v) {
-        return /^\+?[\d\s\-()]{7,15}$/.test(v);
-      },
-      message: 'Please enter a valid phone number'
-    }
-  },
+// ─── User Schema ───────────────────────────────────────────────────────────────
 
-  // 🔐 Auth Info
-  email: {
-    type: String,
-    required: [true, 'Email is required'],
-    unique: true,
-    lowercase: true,
-    trim: true,
-    validate: {
-      validator: function (v) {
-        return /^[\w.-]+@[\w.-]+\.\w{2,}$/.test(v);
-      },
-      message: 'Please enter a valid email address'
-    }
-  },
-
-  password: {
-    type: String,
-    required: [true, 'Password is required'],
-    minlength: [8, 'Password must be at least 8 characters'],
-    select: false   // never return password in queries by default
-  },
-
-  role: {
-    type: String,
-    enum: {
-      values: ['patient', 'doctor', 'nurse', 'receptionist', 'pharmacist', 'lab_technician', 'admin'],
-      message: '{VALUE} is not a valid role'
+const userSchema = new mongoose.Schema(
+  {
+    // 🪪 Auto-incrementing human-readable ID
+    userId: {
+      type: Number,
+      unique: true,
     },
-    default: 'patient'
-  },
 
-  // 📋 Optional Profile Info
-  dateOfBirth: {
-    type: Date,
-    default: null
-  },
+    // 👤 Identity Info
+    firstName: {
+      type: String,
+      required: [true, 'First name is required'],
+      trim: true,
+      minlength: 2,
+      maxlength: 50,
+    },
 
-  gender: {
-    type: String,
-    enum: ['male', 'female', 'other'],
-    default: null
-  },
+    lastName: {
+      type: String,
+      required: [true, 'Last name is required'],
+      trim: true,
+      minlength: 2,
+      maxlength: 50,
+    },
 
-  // ✅ Account Status
-  isActive: {
-    type: Boolean,
-    default: true
-  },
+    // 📞 Contact
+    phone: {
+      type: String,
+      required: [true, 'Phone is required'],
+      unique: true,
+      trim: true,
+    },
 
-  isEmailVerified: {
-    type: Boolean,
-    default: false
-  },
+    // 🔐 Login Identity
+    email: {
+      type: String,
+      required: [true, 'Email is required'],
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
 
-  // 🔁 Password Reset
-  resetPasswordToken: {
-    type: String,
-    default: null
-  },
+    password: {
+      type: String,
+      required: [true, 'Password is required'],
+      select: false, // 🔒 never return password
+    },
 
-  resetPasswordExpire: {
-    type: Date,
-    default: null
-  },
+    // 🧭 System Role
+    role: {
+      type: String,
+      enum: ['patient', 'doctor', 'admin'],
+      required: true,
+    },
 
-  // 📧 Email Verification
-  emailVerificationToken: {
-    type: String,
-    default: null
-  },
+    // ✅ Account status
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
 
-  emailVerificationExpire: {
-    type: Date,
-    default: null
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
+
+    // 🔁 Token management
+    refreshToken: {
+      type: String,
+      default: null,
+    },
+
+    resetPasswordToken: {
+      type: String,
+      default: null,
+    },
+
+    resetPasswordExpire: {
+      type: Date,
+      default: null,
+    },
+
+    // 🔢 OTP fields
+    resetOtp: {
+      type: String,
+      default: null,
+    },
+
+    resetOtpExpiry: {
+      type: Date,
+      default: null,
+    },
+  },
+  {
+    timestamps: true,
   }
+);
 
-}, { timestamps: true });
+// ─── Auto-increment userId before saving ──────────────────────────────────────
+
+userSchema.pre('save', async function () {
+  if (!this.isNew) return;
+  const counter = await Counter.findByIdAndUpdate(
+    { _id: 'userId' },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  );
+  this.userId = counter.seq;
+});
+
+// ─── Export ────────────────────────────────────────────────────────────────────
+
+const User = mongoose.model('User', userSchema);
+export default User;
 /*{
     "name": "John Doe",
     "email": "john@example.com",

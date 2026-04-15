@@ -1,6 +1,7 @@
-const jwt = require("jsonwebtoken");
+import jwt from "jsonwebtoken";
 
-const verifyToken = (req, res, next) => {
+// Verify JWT token
+export function verifyToken(req, res, next) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
 
@@ -15,15 +16,19 @@ const verifyToken = (req, res, next) => {
   } catch (err) {
     return res.status(403).json({ message: "Invalid or expired token" });
   }
-};
+}
 
-const requireRole = (...roles) => {
+// Role-based access control
+export function requireRole(...roles) {
   return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
     if (!roles.includes(req.user.role)) {
       return res.status(403).json({ message: "Insufficient permissions" });
     }
+
     next();
   };
-};
-
-module.exports = { verifyToken, requireRole };
+}
