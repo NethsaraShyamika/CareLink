@@ -8,7 +8,7 @@ import PaymentSuccess from "./pages/patient/Paymentsuccess";
 import PaymentFail from "./pages/patient/Paymentfail";
 import PaymentHistory from "./pages/patient/PaymentHistory";
 
-import LoginPage from "./pages/shared/LoginPage";
+import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import PatientDashboard from "./pages/patient/PatientDashboard";
 import DoctorDashboard from "./pages/doctor/DoctorDashboard";
