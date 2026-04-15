@@ -11,6 +11,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 
 import PatientDashboard from "./pages/patient/PatientDashboard";
+import DoctorDashboard from "./pages/doctor/DoctorDashboard";
 
 function App() {
   const getQueryParam = (param) => {
@@ -22,27 +23,23 @@ function App() {
     <Router>
       <Routes>
 
-        {/* Home */}
-        <Route
-          path="/"
-          element={
-            <div className="min-h-screen flex items-center justify-center bg-gray-900">
-              <h1 className="text-4xl font-bold text-blue-400">
-                CareLink 🚀
-              </h1>
-            </div>
-          }
-        />
+
+        {/* Redirect root to login */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
 
         {/* Auth */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
+
         {/* Patient */}
         <Route path="/patient/dashboard" element={<PatientDashboard />} />
 
+        {/* Doctor */}
+        <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
+
         {/* Admin */}
-        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
         {/* Video Call */}
         <Route

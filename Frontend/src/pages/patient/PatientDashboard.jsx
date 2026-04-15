@@ -1,31 +1,15 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useUser } from "../../contextUser.jsx";
-import { fetchPatientProfile } from "../../utils/api.js";
+import { useNavigate } from "react-router-dom";
 
 const PatientDashboard = () => {
-  const { user, login, logout } = useUser();
+  const { user, logout } = useUser();
   const [showProfile, setShowProfile] = useState(false);
   const profileRef = useRef();
-
-  // Fetch latest profile if token exists and user is not loaded
-  useEffect(() => {
-    async function fetchProfile() {
-      const token = localStorage.getItem("token");
-      if (token && (!user || !user.firstName)) {
-        try {
-          const profile = await fetchPatientProfile(token);
-          login({ ...profile, token });
-        } catch (err) {
-          // Optionally handle error (e.g., logout)
-        }
-      }
-    }
-    fetchProfile();
-    // eslint-disable-next-line
-  }, []);
+  const navigate = useNavigate();
 
   // Close dropdown when clicking outside
-  React.useEffect(() => {
+  useEffect(() => {
     function handleClickOutside(event) {
       if (profileRef.current && !profileRef.current.contains(event.target)) {
         setShowProfile(false);
@@ -33,15 +17,21 @@ const PatientDashboard = () => {
     }
     if (showProfile) {
       document.addEventListener("mousedown", handleClickOutside);
-    } else {
-      document.removeEventListener("mousedown", handleClickOutside);
     }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showProfile]);
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
+  const initials = `${user?.firstName?.[0] || "?"}${user?.lastName?.[0] || ""}`;
+
   return (
-    <div className="min-h-screen bg-[#F9FAFB] flex">
+    <div className="min-h-screen bg-[#F9FAFB] flex relative">
       {/* Sidebar */}
       <aside className="w-64 bg-[#FFFFFF] border-[#E5E7EB] border-r flex flex-col min-h-screen">
         <div className="flex items-center gap-2 px-6 py-6 border-b border-[#E5E7EB]">
@@ -122,11 +112,15 @@ const PatientDashboard = () => {
             </ul>
           </div>
         </nav>
+
+        {/* Sidebar user card */}
         <div className="mt-auto px-6 py-4 bg-[#CCFBF1] rounded-lg m-4 flex items-center gap-3">
-          <div className="bg-[#0D9488] text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">{user?.firstName?.[0]}{user?.lastName?.[0]}</div>
+          <div className="bg-[#0D9488] text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">
+            {initials}
+          </div>
           <div>
             <div className="font-semibold text-[#0D9488]">{user?.firstName} {user?.lastName}</div>
-            <div className="text-xs text-[#14B8A6]">ID #P-00412</div>
+            <div className="text-xs text-[#14B8A6]">Patient</div>
           </div>
         </div>
       </aside>
@@ -134,47 +128,129 @@ const PatientDashboard = () => {
       {/* Main Content */}
       <main className="flex-1 p-8 overflow-y-auto">
         <div className="flex flex-col gap-6 max-w-6xl mx-auto">
+
+          {/* Top bar */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
             <div>
-              <h1 className="text-2xl font-bold text-[#111827]">Good morning{user && user.firstName ? `, ${user.firstName}` : ", Guest"}</h1>
-              <div className="text-[#6B7280] text-sm">Wednesday, 15 April 2026 · Your next appointment is in 2 days</div>
+              <h1 className="text-2xl font-bold text-[#111827]">
+                Good morning{user?.firstName ? `, ${user.firstName}` : ", Guest"}
+              </h1>
+              <div className="text-[#6B7280] text-sm">
+                {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              </div>
             </div>
-            <div className="flex items-center gap-2 mt-2 md:mt-0 relative">
+
+            {/* Top right icons + profile */}
+            <div className="flex items-center gap-2 mt-2 md:mt-0 relative" ref={profileRef}>
               <button className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-full p-2 hover:bg-[#CCFBF1]">
                 <span className="material-icons text-[#0D9488]">notifications</span>
               </button>
               <button className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-full p-2 hover:bg-[#CCFBF1]">
                 <span className="material-icons text-[#0D9488]">search</span>
               </button>
+
+              {/* Profile icon button */}
               <button
-                className="bg-[#0D9488] text-white rounded-full w-9 h-9 flex items-center justify-center font-bold focus:outline-none"
+                className="bg-[#0D9488] text-white rounded-full w-9 h-9 flex items-center justify-center font-bold focus:outline-none hover:bg-[#0f766e] transition"
                 onClick={() => setShowProfile((v) => !v)}
-                ref={profileRef}
                 aria-label="Profile"
               >
-                {user?.firstName?.[0]}{user?.lastName?.[0]}
+                {initials}
               </button>
+
+              {/* Profile dropdown */}
               {showProfile && (
-                <div className="absolute right-0 top-12 z-50 w-64 bg-white rounded-xl shadow-lg border border-[#E5E7EB] p-4 flex flex-col gap-2 animate-fade-in" style={{minWidth: '220px'}}>
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="bg-[#0D9488] text-white rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold">
-                      {user?.firstName?.[0]}{user?.lastName?.[0]}
+                <div className={`fixed top-0 right-0 h-full w-80 max-w-full bg-white shadow-2xl border-l border-[#E5E7EB] z-50 transition-transform duration-300 ${showProfile ? 'translate-x-0' : 'translate-x-full'}`} style={{minWidth: '320px'}}>
+                  {/* Close button */}
+                  <button
+                    className="absolute top-4 right-4 text-[#0D9488] bg-[#F3F4F6] rounded-full p-2 shadow hover:bg-[#CCFBF1] focus:outline-none"
+                    onClick={() => setShowProfile(false)}
+                    aria-label="Close profile sidebar"
+                  >
+                    <span className="material-icons">close</span>
+                  </button>
+                  
+                  {/* Header */}
+                  <div className="bg-gradient-to-r from-[#14B8A6] to-[#2563EB] px-5 py-4 flex items-center gap-3">
+                    <div className="bg-white text-[#0D9488] rounded-full w-14 h-14 flex items-center justify-center text-xl font-bold shadow">
+                      {initials}
                     </div>
                     <div>
-                      <div className="font-semibold text-[#0D9488]">{user?.firstName} {user?.lastName}</div>
-                      <div className="text-xs text-[#6B7280]">{user?.email}</div>
+                      <div className="font-bold text-white text-lg">
+                        {user?.firstName} {user?.lastName}
+                      </div>
+                      <div className="text-[#CCFBF1] text-xs capitalize">{user?.role || "patient"}</div>
                     </div>
                   </div>
-                  <div className="text-sm text-[#111827]">
-                    <div><span className="font-medium">Phone:</span> {user?.phone || '-'}</div>
-                    <div><span className="font-medium">Role:</span> {user?.role || 'patient'}</div>
+
+                  {/* Details */}
+                  <div className="px-5 py-4 space-y-3">
+                    <div className="flex items-center gap-3 text-sm">
+                      <span className="material-icons text-[#14B8A6] text-base">email</span>
+                      <div>
+                        <div className="text-[#9CA3AF] text-xs">Email</div>
+                        <div className="text-[#111827] font-medium">{user?.email || "—"}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-sm">
+                      <span className="material-icons text-[#14B8A6] text-base">phone</span>
+                      <div>
+                        <div className="text-[#9CA3AF] text-xs">Phone</div>
+                        <div className="text-[#111827] font-medium">{user?.phone || "—"}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-sm">
+                      <span className="material-icons text-[#14B8A6] text-base">badge</span>
+                      <div>
+                        <div className="text-[#9CA3AF] text-xs">Role</div>
+                        <div className="text-[#111827] font-medium capitalize">{user?.role || "patient"}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-sm">
+                      <span className="material-icons text-[#14B8A6] text-base">verified</span>
+                      <div>
+                        <div className="text-[#9CA3AF] text-xs">Email Verified</div>
+                        <div className={`font-medium ${user?.isEmailVerified ? "text-[#22C55E]" : "text-[#F59E0B]"}`}>
+                          {user?.isEmailVerified ? "Verified" : "Not Verified"}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-sm">
+                      <span className="material-icons text-[#14B8A6] text-base">toggle_on</span>
+                      <div>
+                        <div className="text-[#9CA3AF] text-xs">Account Status</div>
+                        <div className={`font-medium ${user?.isActive ? "text-[#22C55E]" : "text-[#EF4444]"}`}>
+                          {user?.isActive ? "Active" : "Inactive"}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <button
-                    className="mt-3 bg-[#14B8A6] hover:bg-[#0D9488] text-white py-2 rounded-lg font-semibold transition"
-                    onClick={() => { logout(); window.location.href = '/login'; }}
-                  >
-                    Logout
-                  </button>
+
+                  {/* Divider */}
+                  <div className="border-t border-[#E5E7EB] mx-4" />
+
+                  {/* Actions */}
+                  <div className="px-5 py-3 flex flex-col gap-2">
+                    <button
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#374151] hover:bg-[#F3F4F6] rounded-lg transition"
+                      onClick={() => { setShowProfile(false); }}
+                    >
+                      <span className="material-icons text-[#14B8A6] text-base">manage_accounts</span>
+                      Edit Profile
+                    </button>
+
+                    <button
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#EF4444] hover:bg-[#FEF2F2] rounded-lg transition font-semibold"
+                      onClick={handleLogout}
+                    >
+                      <span className="material-icons text-[#EF4444] text-base">logout</span>
+                      Logout
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -226,7 +302,6 @@ const PatientDashboard = () => {
 
           {/* Main Dashboard Sections */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Upcoming appointments & lab results */}
             <div className="md:col-span-2 flex flex-col gap-6">
               <section className="bg-[#FFFFFF] rounded-xl shadow p-6 border border-[#E5E7EB]">
                 <div className="flex justify-between items-center mb-4">
@@ -260,6 +335,7 @@ const PatientDashboard = () => {
                   </li>
                 </ul>
               </section>
+
               <section className="bg-[#FFFFFF] rounded-xl shadow p-6 border border-[#E5E7EB]">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="font-semibold text-lg text-[#111827]">Recent lab results</h2>
@@ -298,7 +374,6 @@ const PatientDashboard = () => {
               </section>
             </div>
 
-            {/* Vitals & prescriptions */}
             <div className="flex flex-col gap-6">
               <section className="bg-[#FFFFFF] rounded-xl shadow p-6 border border-[#E5E7EB]">
                 <div className="flex justify-between items-center mb-4">
@@ -326,6 +401,7 @@ const PatientDashboard = () => {
                   </div>
                 </div>
               </section>
+
               <section className="bg-[#FFFFFF] rounded-xl shadow p-6 border border-[#E5E7EB]">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="font-semibold text-lg text-[#111827]">Active prescriptions</h2>
@@ -346,6 +422,7 @@ const PatientDashboard = () => {
                   </li>
                 </ul>
               </section>
+
               <section className="bg-[#FFFFFF] rounded-xl shadow p-6 border border-[#E5E7EB]">
                 <div className="font-semibold text-lg text-[#111827] mb-2">Visits this year</div>
                 <div className="flex items-end gap-2 h-20">
