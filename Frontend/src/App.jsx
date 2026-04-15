@@ -6,12 +6,14 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 
 import PaymentSuccess from "./pages/patient/Paymentsuccess";
 import PaymentFail from "./pages/patient/Paymentfail";
+import PaymentHistory from "./pages/patient/PaymentHistory";
 
-import LoginPage from "./pages/LoginPage";
+import LoginPage from "./pages/shared/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
-
 import PatientDashboard from "./pages/patient/PatientDashboard";
 import DoctorDashboard from "./pages/doctor/DoctorDashboard";
+import SymptomCheck from "./pages/patient/Symptomcheck";
+import SymptomHistory from "./pages/patient/Symptomhistory";
 
 function App() {
   const getQueryParam = (param) => {
@@ -34,6 +36,10 @@ function App() {
 
         {/* Patient */}
         <Route path="/patient/dashboard" element={<PatientDashboard />} />
+        <Route path="/patient/symptom-check" element={<SymptomCheck />} />
+        <Route path="/patient/symptom-history" element={<SymptomHistory />} />
+        <Route path="/payments/history" element={<PaymentHistory />} />
+
 
         {/* Doctor */}
         <Route path="/doctor/dashboard" element={<DoctorDashboard />} />

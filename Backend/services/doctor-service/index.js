@@ -1,24 +1,22 @@
-const express = require("express");
-const cors = require("cors");
-const dotenv = require("dotenv");
-const connectDB = require("./config/db");
+import express from "express";
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import doctorRoutes from "./routes/doctorRoutes.js";
 
 dotenv.config();
 
 const app = express();
 
-// Middleware
-app.use(cors());
 app.use(express.json());
 
-// DB Connection
-connectDB();
-
 // Routes
-app.use("/api/doctors", require("./routes/doctorRoutes"));
+app.use("/api/doctors", doctorRoutes);
 
-const PORT = process.env.PORT || 5001;
-
-app.listen(PORT, () => {
-  console.log(`Doctor Service running on port ${PORT}`);
-});
+// MongoDB connection
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log("MongoDB connected");
+    app.listen(5002, () => console.log("Doctor Service running on port 5002"));
+  })
+  .catch((err) => console.log(err));

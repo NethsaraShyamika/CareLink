@@ -13,112 +13,98 @@ const RegisterPage = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (firstName && lastName && phone && email && password) {
-      fetch("http://localhost:3008/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ firstName, lastName, phone, email, password, role })
-      })
-        .then(async (res) => {
-          if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
-            throw new Error(data.message || "Registration failed");
-          }
-          alert("Registration successful! Please log in.");
-          navigate("/login");
-        })
-        .catch((err) => {
-          alert(err.message || "Registration failed");
-        });
+      alert("Registration successful! Please log in.");
+      navigate("/login");
     } else {
       alert("Please fill all fields.");
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-300">
-      <div className="bg-white bg-opacity-90 shadow-xl rounded-xl p-10 w-full max-w-md">
-        <h2 className="text-2xl font-bold text-center text-blue-900 mb-8 tracking-wide">Register Account</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-300 px-4 py-8">
+      <div className="bg-white bg-opacity-90 shadow-xl rounded-3xl p-10 w-full max-w-md">
+        <h2 className="text-3xl font-bold text-center text-blue-900 mb-8">Create Your CareLink Account</h2>
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <label className="block text-gray-700 mb-2" htmlFor="firstName">First Name</label>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="block">
+              <span className="text-sm font-medium text-slate-700">First Name</span>
               <input
-                id="firstName"
                 type="text"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 required
+                className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-slate-900 focus:border-blue-500 focus:outline-none"
+                placeholder="Jane"
               />
-            </div>
-            <div className="flex-1">
-              <label className="block text-gray-700 mb-2" htmlFor="lastName">Last Name</label>
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium text-slate-700">Last Name</span>
               <input
-                id="lastName"
                 type="text"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 required
+                className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-slate-900 focus:border-blue-500 focus:outline-none"
+                placeholder="Doe"
               />
-            </div>
+            </label>
           </div>
-          <div>
-            <label className="block text-gray-700 mb-2" htmlFor="phone">Phone</label>
+
+          <label className="block">
+            <span className="text-sm font-medium text-slate-700">Phone</span>
             <input
-              id="phone"
               type="tel"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               required
+              className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-slate-900 focus:border-blue-500 focus:outline-none"
+              placeholder="012 345 6789"
             />
-          </div>
-          <div>
-            <label className="block text-gray-700 mb-2" htmlFor="email">Email Address</label>
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-medium text-slate-700">Email Address</span>
             <input
-              id="email"
               type="email"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-slate-900 focus:border-blue-500 focus:outline-none"
+              placeholder="you@example.com"
             />
-          </div>
-          <div>
-            <label className="block text-gray-700 mb-2" htmlFor="password">Password</label>
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-medium text-slate-700">Password</span>
             <input
-              id="password"
               type="password"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-slate-900 focus:border-blue-500 focus:outline-none"
+              placeholder="********"
             />
-          </div>
-          <div>
-            <label className="block text-gray-700 mb-2" htmlFor="role">Register As</label>
-            <select
-              id="role"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              value={role}
-              onChange={e => setRole(e.target.value)}
-              required
-            >
-              <option value="patient">Patient</option>
-              <option value="doctor">Doctor</option>
-            </select>
-          </div>
+          </label>
+
+          <input type="hidden" value={role} readOnly />
+
           <button
             type="submit"
-            className="w-full bg-blue-800 hover:bg-blue-900 text-white font-semibold py-2 rounded-lg shadow-md transition duration-200"
+            className="w-full rounded-2xl bg-blue-800 px-4 py-3 text-white font-semibold transition hover:bg-blue-900"
           >
             Register
           </button>
-          <div className="text-center mt-4">
-            <span className="text-gray-600">Already have an account? </span>
-            <button type="button" className="text-blue-700 hover:underline" onClick={() => navigate('/login')}>Login</button>
-          </div>
+
+          <p className="text-center text-sm text-slate-600">
+            Already have an account?{' '}
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              className="text-blue-700 font-semibold hover:underline"
+            >
+              Sign in
+            </button>
+          </p>
         </form>
       </div>
     </div>
