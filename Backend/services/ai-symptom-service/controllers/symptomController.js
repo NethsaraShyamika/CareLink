@@ -8,7 +8,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const checkSymptoms = async (req, res) => {
   try {
     const { symptoms, additionalNotes, age, gender } = req.body;
-    const patientId = req.user.userId;
+    const patientId = req.user.id || req.user.userId;
 
     // Validate symptoms
     if (!symptoms || !Array.isArray(symptoms) || symptoms.length === 0) {
@@ -131,10 +131,10 @@ const getHistory = async (userId) => {
   }
 };
 
-// Wrapper for Express route
 const getHistoryRoute = async (req, res) => {
   try {
-    const history = await getHistory(req.user.userId);
+    const userId = req.user.id || req.user.userId;
+    const history = await getHistory(userId);
     res.status(200).json({ success: true, count: history.length, checks: history });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -147,7 +147,8 @@ const getCheckById = async (req, res) => {
     const check = await SymptomCheck.findById(req.params.id);
     if (!check) return res.status(404).json({ message: "Record not found." });
 
-    if (req.user.role === "patient" && check.patientId.toString() !== req.user.userId) {
+    const userId = req.user.id || req.user.userId;
+    if (req.user.role === "patient" && check.patientId.toString() !== userId) {
       return res.status(403).json({ message: "Access denied." });
     }
 
