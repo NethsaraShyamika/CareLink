@@ -1,26 +1,28 @@
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-const Payment = require("../models/Payment");
+import Stripe from "stripe";
+import Payment from "../models/Payment.js";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+const FRONTEND_URL =
+  process.env.FRONTEND_URL || "http://localhost:5173";
 
 // POST /api/payments/stripe/create-intent
-// Creates a Stripe PaymentIntent and returns client_secret to frontend
-const createStripePaymentIntent = async (req, res) => {
+export async function createStripePaymentIntent(req, res) {
   try {
     const { appointmentId, doctorId, amount } = req.body;
     const patientId = req.user.userId;
 
     if (!appointmentId || !doctorId || !amount) {
-      return res.status(400).json({ message: "appointmentId, doctorId, and amount are required." });
+      return res.status(400).json({
+        message: "appointmentId, doctorId, and amount are required.",
+      });
     }
 
-    // Stripe amount is in smallest currency unit
-    // LKR doesn't support decimals in Stripe, so amount * 100 for USD, just amount for LKR
-    // Using USD for Stripe sandbox testing
-    const stripeAmount = Math.round(parseFloat(amount) * 100); // cents
+    const stripeAmount = Math.round(parseFloat(amount) * 100);
 
-    // Create Stripe PaymentIntent
     const paymentIntent = await stripe.paymentIntents.create({
       amount: stripeAmount,
-      currency: "usd", // use "lkr" if your Stripe account supports it
+      currency: "usd",
       metadata: {
         patientId: patientId.toString(),
         appointmentId: appointmentId.toString(),
@@ -28,7 +30,6 @@ const createStripePaymentIntent = async (req, res) => {
       },
     });
 
-    // Save pending payment to DB
     const payment = new Payment({
       patientId,
       appointmentId,
@@ -39,49 +40,53 @@ const createStripePaymentIntent = async (req, res) => {
       gatewayOrderId: paymentIntent.id,
       status: "pending",
     });
+
     await payment.save();
 
     res.status(200).json({
       success: true,
       paymentId: payment._id,
-      clientSecret: paymentIntent.client_secret, // sent to frontend for Stripe Elements
+      clientSecret: paymentIntent.client_secret,
     });
   } catch (err) {
     console.error("Stripe create intent error:", err.message);
-    res.status(500).json({ message: "Failed to create payment intent." });
+    res
+      .status(500)
+      .json({ message: "Failed to create payment intent." });
   }
-};
+}
 
 // POST /api/payments/stripe/create-checkout
-// Creates a Stripe Checkout Session (easier for Postman testing)
-const createStripeCheckoutSession = async (req, res) => {
+export async function createStripeCheckoutSession(req, res) {
   try {
     const { appointmentId, doctorId, amount } = req.body;
     const patientId = req.user.userId;
 
     if (!appointmentId || !doctorId || !amount) {
-      return res.status(400).json({ message: "appointmentId, doctorId, and amount are required." });
+      return res.status(400).json({
+        message: "appointmentId, doctorId, and amount are required.",
+      });
     }
 
     const stripeAmount = Math.round(parseFloat(amount) * 100);
 
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
+      payment_method_types: ["card"],
       line_items: [
         {
           price_data: {
-            currency: 'usd',
+            currency: "usd",
             product_data: {
-              name: 'Doctor Consultation Appointment',
+              name: "Doctor Consultation Appointment",
             },
             unit_amount: stripeAmount,
           },
           quantity: 1,
         },
       ],
-      mode: 'payment',
-      success_url: 'http://localhost:3000/payment-success',
-      cancel_url: 'http://localhost:3000/payment-cancel',
+      mode: "payment",
+      success_url: `${FRONTEND_URL}/payment/success`,
+      cancel_url: `${FRONTEND_URL}/payment/fail`,
       metadata: {
         patientId: patientId.toString(),
         appointmentId: appointmentId.toString(),
@@ -99,29 +104,31 @@ const createStripeCheckoutSession = async (req, res) => {
       gatewayOrderId: session.id,
       status: "pending",
     });
+
     await payment.save();
 
     res.status(200).json({
       success: true,
       message: "Checkout session created directly.",
       paymentId: payment._id,
-      url: session.url, // Click this in Postman to pay
+      url: session.url,
     });
   } catch (err) {
     console.error("Stripe checkout session error:", err.message);
-    res.status(500).json({ message: "Failed to create checkout session." });
+    res
+      .status(500)
+      .json({ message: "Failed to create checkout session." });
   }
-};
+}
 
 // POST /api/payments/stripe/webhook
-// Stripe calls this automatically when payment status changes
-const stripeWebhook = async (req, res) => {
+export async function stripeWebhook(req, res) {
   const sig = req.headers["stripe-signature"];
   let event;
 
   try {
     event = stripe.webhooks.constructEvent(
-      req.body, // raw body (set in server.js)
+      req.body,
       sig,
       process.env.STRIPE_WEBHOOK_SECRET
     );
@@ -130,40 +137,52 @@ const stripeWebhook = async (req, res) => {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  // Handle events
-  switch (event.type) {
-    case "payment_intent.succeeded": {
-      const intent = event.data.object;
-      await Payment.findOneAndUpdate(
-        { gatewayOrderId: intent.id },
-        {
-          status: "completed",
-          gatewayPaymentId: intent.latest_charge,
-          gatewayResponse: intent,
-        }
-      );
-      console.log(`Stripe payment succeeded: ${intent.id}`);
-      break;
-    }
-    case "payment_intent.payment_failed": {
-      const intent = event.data.object;
-      await Payment.findOneAndUpdate(
-        { gatewayOrderId: intent.id },
-        { status: "failed", gatewayResponse: intent }
-      );
-      console.log(`Stripe payment failed: ${intent.id}`);
-      break;
-    }
-    default:
-      console.log(`Unhandled Stripe event: ${event.type}`);
-  }
+  try {
+    switch (event.type) {
+      case "payment_intent.succeeded": {
+        const intent = event.data.object;
 
-  res.status(200).json({ received: true });
-};
+        await Payment.findOneAndUpdate(
+          { gatewayOrderId: intent.id },
+          {
+            status: "completed",
+            gatewayPaymentId: intent.latest_charge,
+            gatewayResponse: intent,
+          }
+        );
+
+        console.log(`Stripe payment succeeded: ${intent.id}`);
+        break;
+      }
+
+      case "payment_intent.payment_failed": {
+        const intent = event.data.object;
+
+        await Payment.findOneAndUpdate(
+          { gatewayOrderId: intent.id },
+          {
+            status: "failed",
+            gatewayResponse: intent,
+          }
+        );
+
+        console.log(`Stripe payment failed: ${intent.id}`);
+        break;
+      }
+
+      default:
+        console.log(`Unhandled Stripe event: ${event.type}`);
+    }
+
+    res.status(200).json({ received: true });
+  } catch (err) {
+    console.error("Webhook handling error:", err.message);
+    res.status(500).json({ message: "Webhook processing failed." });
+  }
+}
 
 // POST /api/payments/stripe/confirm
-// Called from frontend after Stripe Elements confirms the payment
-const confirmStripePayment = async (req, res) => {
+export async function confirmStripePayment(req, res) {
   try {
     const { paymentIntentId } = req.body;
 
@@ -183,16 +202,13 @@ const confirmStripePayment = async (req, res) => {
       { new: true }
     );
 
-    res.status(200).json({ success: true, status: newStatus, payment });
+    res.status(200).json({
+      success: true,
+      status: newStatus,
+      payment,
+    });
   } catch (err) {
     console.error("Stripe confirm error:", err.message);
     res.status(500).json({ message: "Failed to confirm payment." });
   }
-};
-
-module.exports = {
-  createStripePaymentIntent,
-  createStripeCheckoutSession,
-  stripeWebhook,
-  confirmStripePayment,
-};
+}
