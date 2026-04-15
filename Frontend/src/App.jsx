@@ -1,14 +1,20 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+
 import VideoCall from "./pages/shared/VideoCall";
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import PaymentSuccess from "./pages/patient/Paymentsuccess";
 import PaymentFail from "./pages/patient/Paymentfail";
+import PaymentHistory from "./pages/patient/PaymentHistory";
+
+import LoginPage from "./pages/shared/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import PatientDashboard from "./pages/patient/PatientDashboard";
+import SymptomCheck from "./pages/patient/Symptomcheck";
+import SymptomHistory from "./pages/patient/Symptomhistory";
 
 function App() {
-  // Helper to get query params from URL
   const getQueryParam = (param) => {
     const params = new URLSearchParams(window.location.search);
     return params.get(param) || "";
@@ -17,28 +23,33 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Homepage */}
+
+        {/* Home */}
         <Route
           path="/"
           element={
             <div className="min-h-screen flex items-center justify-center bg-gray-900">
-              <h1 className="text-4xl font-bold text-blue-400">CareLink 🚀</h1>
+              <h1 className="text-4xl font-bold text-blue-400">
+                CareLink 🚀
+              </h1>
             </div>
           }
         />
 
-        {/* Redirect old /join-consultation to /video */}
-        <Route
-          path="/join-consultation"
-          element={
-            <Navigate
-              to={`/video?appointmentId=${getQueryParam("appointmentId")}&role=${getQueryParam("role")}`}
-              replace
-            />
-          }
-        />
+        {/* Auth */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
-        {/* Video Call Route */}
+        {/* Patient */}
+        <Route path="/patient/dashboard" element={<PatientDashboard />} />
+        <Route path="/patient/symptom-check" element={<SymptomCheck />} />
+        <Route path="/patient/symptom-history" element={<SymptomHistory />} />
+        <Route path="/payments/history" element={<PaymentHistory />} />
+
+        {/* Admin */}
+        <Route path="/admin" element={<AdminDashboard />} />
+
+        {/* Video Call */}
         <Route
           path="/video"
           element={
@@ -49,22 +60,26 @@ function App() {
           }
         />
 
-        {/* Admin Dashboard */}
-        <Route path="/admin" element={<AdminDashboard />} />
-      </Routes>
-    </Router>
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={
-          <div className="min-h-screen flex items-center justify-center bg-gray-900">
-            <h1 className="text-4xl font-bold text-blue-400">CareLink 🚀</h1>
-          </div>
-        } />
-
+        {/* Payment */}
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/payment/fail" element={<PaymentFail />} />
+
+        {/* Redirect old route */}
+        <Route
+          path="/join-consultation"
+          element={
+            <Navigate
+              to={`/video?appointmentId=${getQueryParam("appointmentId")}&role=${getQueryParam("role")}`}
+              replace
+            />
+          }
+        />
+
+        {/* fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }
 
