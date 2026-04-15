@@ -11,6 +11,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'icomputers';
 export async function createUser(req, res) {
   const data = req.body;
   try {
+    console.log('📝 Registration attempt:', data.email);
+    
     const passwordHash = await bcrypt.hash(data.password, 10);
 
     const newUser = new User({
@@ -23,13 +25,7 @@ export async function createUser(req, res) {
     });
 
     await newUser.save();
-
-    // Email sending temporarily disabled for development
-    // try {
-    //   await sendWelcomeEmail(data.email, data.firstName);
-    // } catch (emailError) {
-    //   console.log('Welcome email sending failed:', emailError.message);
-    // }
+    console.log('✅ User saved successfully:', newUser.email);
 
     const payload = {
       id: newUser.id,
@@ -51,8 +47,12 @@ export async function createUser(req, res) {
 
     res.status(201).json({ message: 'User created successfully', token, user: payload });
   } catch (error) {
-    console.log('Error in createUser:', error);
+    console.error('❌ Error in createUser:', error);
+    console.error('❌ Error name:', error.name);
+    console.error('❌ Error message:', error.message);
+    
     if (error.code === 11000) {
+      console.error('❌ Duplicate key error:', error.keyPattern);
       if (error.keyPattern?.email) {
         return res.status(400).json({ message: 'Email already exists' });
       }
@@ -61,10 +61,20 @@ export async function createUser(req, res) {
       }
       return res.status(400).json({ message: 'A duplicate record was found. Please try again.' });
     }
-    res.status(403).json({ message: 'Error creating user' });
+    
+    // Check for validation errors
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(e => e.message);
+      return res.status(400).json({ message: 'Validation error', errors });
+    }
+    
+    res.status(403).json({ 
+      message: 'Error creating user', 
+      error: error.message,
+      name: error.name 
+    });
   }
 }
-
 // ─── Login ─────────────────────────────────────────────────────────────────────
 
 export async function loginUser(req, res) {
