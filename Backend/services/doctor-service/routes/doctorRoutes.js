@@ -1,16 +1,39 @@
-const express = require("express");
-const router = express.Router();
-const {
-  createDoctor,
-  getDoctors,
-  getDoctorById,
+import express from "express";
+import {
+  createOrUpdateProfile,
+  getMyProfile,
+  getDoctorByUserId,
   updateAvailability,
-} = require("../controllers/doctorController");
+  getAvailability,
+  getPendingDoctors,
+  verifyDoctor,
+  rejectDoctor,
+  getAllDoctors,
+  getDoctorsBySpecialization,
+  searchDoctors,
+} from "../controllers/doctorController.js";
 
-// Routes
-router.post("/", createDoctor);
-router.get("/", getDoctors);
-router.get("/:id", getDoctorById);
-router.put("/:id/availability", updateAvailability);
+import { protect, authorizeRoles } from "../middleware/authMiddleware.js";
 
-module.exports = router;
+const router = express.Router();
+
+// 👤 Profile
+router.post("/profile", protect, authorizeRoles("doctor"), createOrUpdateProfile);
+router.get("/me", protect, authorizeRoles("doctor"), getMyProfile);
+router.get("/:userId", getDoctorByUserId);
+
+// 📅 Availability
+router.put("/availability", protect, authorizeRoles("doctor"), updateAvailability);
+router.get("/availability/:userId", getAvailability);
+
+// 🟢 Admin verification
+router.get("/admin/pending", protect, authorizeRoles("admin"), getPendingDoctors);
+router.put("/admin/verify/:id", protect, authorizeRoles("admin"), verifyDoctor);
+router.put("/admin/reject/:id", protect, authorizeRoles("admin"), rejectDoctor);
+
+// 🔍 Search
+router.get("/", getAllDoctors);
+router.get("/specialization/:specialization", getDoctorsBySpecialization);
+router.get("/search/query", searchDoctors);
+
+export default router;
