@@ -1,21 +1,23 @@
-const express = require("express");
-const router = express.Router();
-const rateLimit = require("express-rate-limit");
-const { verifyToken, requireRole } = require("../middleware/authMiddleware");
+import express from "express";
+import rateLimit from "express-rate-limit";
 
-const {
+import { verifyToken, requireRole } from "../middleware/authMiddleware.js";
+
+import {
   createStripePaymentIntent,
   createStripeCheckoutSession,
   stripeWebhook,
   confirmStripePayment,
-} = require("../controllers/stripeController");
+} from "../controllers/stripeController.js";
 
-const {
+import {
   getPaymentHistory,
   getPaymentById,
   getPaymentByAppointment,
   getAllPayments,
-} = require("../controllers/paymentController");
+} from "../controllers/paymentController.js";
+
+const router = express.Router();
 
 // Rate limiter for payment initiation
 const paymentLimiter = rateLimit({
@@ -24,38 +26,38 @@ const paymentLimiter = rateLimit({
   message: { message: "Too many payment requests. Please try again later." },
 });
 
-// ── Stripe Routes ───────────────────────────────────────────────────────────
+// ── Stripe Routes ───────────────────────────────────────────────
 
-// Stripe webhook — must be first, needs raw body (no JWT auth)
+// Stripe webhook (must be first, no auth, raw body required)
 router.post("/stripe/webhook", stripeWebhook);
 
-// Create Stripe Checkout Session (easier for Postman testing)
+// Create Stripe Checkout Session
 router.post(
   "/stripe/create-checkout",
   verifyToken,
   requireRole("patient"),
   paymentLimiter,
-  createStripeCheckoutSession
+  createStripeCheckoutSession,
 );
 
-// Create Stripe PaymentIntent (patient only)
+// Create Stripe PaymentIntent
 router.post(
   "/stripe/create-intent",
   verifyToken,
   requireRole("patient"),
   paymentLimiter,
-  createStripePaymentIntent
+  createStripePaymentIntent,
 );
 
-// Confirm Stripe payment from frontend (patient only)
+// Confirm Stripe payment
 router.post(
   "/stripe/confirm",
   verifyToken,
   requireRole("patient"),
-  confirmStripePayment
+  confirmStripePayment,
 );
 
-// ── General Routes ──────────────────────────────────────────────────────────
+// ── General Routes ───────────────────────────────────────────────
 
 // Patient payment history
 router.get("/history", verifyToken, requireRole("patient"), getPaymentHistory);
@@ -65,13 +67,18 @@ router.get(
   "/appointment/:appointmentId",
   verifyToken,
   requireRole("patient", "doctor", "admin"),
-  getPaymentByAppointment
+  getPaymentByAppointment,
 );
 
 // Admin — all payments
 router.get("/admin/all", verifyToken, requireRole("admin"), getAllPayments);
 
 // Single payment by ID
-router.get("/:id", verifyToken, requireRole("patient", "admin"), getPaymentById);
+router.get(
+  "/:id",
+  verifyToken,
+  requireRole("patient", "admin"),
+  getPaymentById,
+);
 
-module.exports = router;
+export default router;
