@@ -1,7 +1,7 @@
-const express = require("express");
-const dotenv = require("dotenv");
-const cors = require("cors");
-const connectDB = require("./config/db");
+import express from "express";
+import dotenv from "dotenv";
+import cors from "cors";
+import connectDB from "./config/db.js";
 
 // Load .env file
 dotenv.config();
@@ -11,16 +11,15 @@ connectDB();
 
 const app = express();
 
-// Allow frontend to call this service
+// Middleware
 app.use(cors());
-
-// Read JSON from request body
 app.use(express.json());
 
-// All routes
-app.use("/api", require("./routes/appointmentRoutes"));
+// Routes
+import appointmentRoutes from "./routes/appointmentRoutes.js";
+app.use("/api", appointmentRoutes);
 
-// Health check — open http://localhost:5002/health to confirm it is running
+// Health check
 app.get("/health", (req, res) => {
   res.json({ status: "OK", service: "Appointment Service" });
 });
