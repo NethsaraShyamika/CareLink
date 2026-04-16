@@ -1,5 +1,6 @@
 import { useState } from "react";
 import PatientManagement from "./PatientManagement";
+import { useNavigate } from "react-router-dom";
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap');
@@ -498,13 +499,6 @@ const APPOINTMENTS = [
   { id: "APT-087", doctor: "Dr. Chamara W.", patient: "Lasith P.", date: "Apr 13, 2026", time: "03:30 PM", status: "Cancelled", type: "Video" },
 ];
 
-const PAYMENTS = [
-  { id: "PAY-001", patient: "Kavindu Perera", doctor: "Dr. Amali Silva", amount: "LKR 2,500", date: "Apr 14", status: "Success" },
-  { id: "PAY-002", patient: "Sachini Bandara", doctor: "Dr. Priya M.", amount: "LKR 3,000", date: "Apr 14", status: "Success" },
-  { id: "PAY-003", patient: "Nimal Fernando", doctor: "Dr. Ruwan J.", amount: "LKR 2,000", date: "Apr 13", status: "Pending" },
-  { id: "PAY-004", patient: "Tharushi K.", doctor: "Dr. Amali Silva", amount: "LKR 2,500", date: "Apr 13", status: "Failed" },
-];
-
 const NOTIFICATIONS = [
   { icon: "🩺", bg: "rgba(34,197,94,0.12)", text: "Dr. Ruwan Jayasinghe submitted verification documents for review.", time: "2 mins ago" },
   { icon: "📅", bg: "rgba(14,165,233,0.12)", text: "New appointment APT-091 booked between Dr. Priya M. and Sachini Bandara.", time: "15 mins ago" },
@@ -521,6 +515,8 @@ function AdminDashboard() {
   const [doctorList, setDoctorList] = useState(DOCTORS);
   // Only show non-patient users for User Management
   const [userList] = useState(USERS.filter(u => u.role !== "Patient"));
+  const [userList] = useState(USERS);
+  const navigate = useNavigate();
 
   const handleVerify = (name, action) => {
     setDoctorList(prev => prev.filter(d => d.name !== name));
@@ -559,7 +555,7 @@ function AdminDashboard() {
               <div
                 key={tab.id}
                 className={`cl-nav-item ${activeTab === tab.id ? "active" : ""}`}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => tab.id === "payments" ? navigate('/admin/payments') : setActiveTab(tab.id)}
               >
                 <span className="cl-nav-icon">{tab.icon}</span>
                 {tab.label}
@@ -818,57 +814,6 @@ function AdminDashboard() {
                 </table>
               </div>
             </div>
-          )}
-
-          {/* ── PAYMENTS ── */}
-          {activeTab === "payments" && (
-            <>
-              <div className="cl-stats" style={{ gridTemplateColumns: "repeat(3, 1fr)", marginBottom: "20px" }}>
-                {[
-                  { label: "Total Revenue", value: "LKR 184K", icon: "💰", color: "#22c55e" },
-                  { label: "Successful", value: "342", icon: "✅", color: "#0ea5e9" },
-                  { label: "Failed/Pending", value: "18", icon: "⚠️", color: "#f59e0b" },
-                ].map((s, i) => (
-                  <div className="cl-stat-card" key={i}>
-                    <div className="cl-stat-icon" style={{ background: `${s.color}18` }}>{s.icon}</div>
-                    <div className="cl-stat-value">{s.value}</div>
-                    <div className="cl-stat-label">{s.label}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="cl-panel">
-                <div className="cl-panel-header">
-                  <div className="cl-panel-title">💳 Payment Transactions</div>
-                  <div className="cl-panel-action">Export CSV</div>
-                </div>
-                <div style={{ overflowX: "auto" }}>
-                  <table className="cl-table">
-                    <thead>
-                      <tr>
-                        <th>Payment ID</th>
-                        <th>Patient</th>
-                        <th>Doctor</th>
-                        <th>Amount</th>
-                        <th>Date</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {PAYMENTS.map((p, i) => (
-                        <tr key={i}>
-                          <td style={{ color: "#38bdf8", fontWeight: "600", fontSize: "12px" }}>{p.id}</td>
-                          <td style={{ fontSize: "13px" }}>{p.patient}</td>
-                          <td style={{ fontSize: "13px", color: "rgba(255,255,255,0.6)" }}>{p.doctor}</td>
-                          <td style={{ fontSize: "13px", fontWeight: "600" }}>{p.amount}</td>
-                          <td style={{ fontSize: "12px", color: "rgba(255,255,255,0.45)" }}>{p.date}</td>
-                          <td><span className={`cl-badge ${statusBadge(p.status)}`}>● {p.status}</span></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </>
           )}
 
           {/* ── NOTIFICATIONS ── */}

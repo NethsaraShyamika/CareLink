@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 
 import VideoCall from "./pages/shared/VideoCall";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminPaymentManager from "./pages/admin/Adminpaymentmanager";
 
 import PaymentSuccess from "./pages/patient/Paymentsuccess";
 import PaymentFail from "./pages/patient/Paymentfail";
@@ -46,6 +47,7 @@ function App() {
 
         {/* Admin */}
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/payments" element={<AdminPaymentManager />} />
 
         {/* Video Call */}
         <Route
