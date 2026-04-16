@@ -14,5 +14,6 @@ router.post("/consultation-completed", consultationCompleted);
 router.post("/appointment-cancelled", appointmentCancelled);
 router.get("/all", getAllNotifications);
 router.get("/email/:email", getNotificationsByEmail);
+router.post("/reminder", sendReminder);
 
 export default router;

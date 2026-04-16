@@ -228,3 +228,19 @@ export const getNotificationsByEmail = async (req, res) => {
         return res.status(500).json({ error: error.message });
     }
 };
+
+export const sendReminder = async (req, res) => {
+  try {
+    const { appointmentId, date, timeSlot } = req.body;
+
+    const message = `⏰ Reminder: Appointment ${appointmentId} is at ${timeSlot}`;
+
+    // send email / WhatsApp here
+    console.log(message);
+
+    return res.json({ message: "Reminder sent" });
+
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
