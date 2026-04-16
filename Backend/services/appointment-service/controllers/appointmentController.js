@@ -7,7 +7,9 @@ const axios = require("axios");
 // ────────────────────────────────────────────────────
 const bookAppointment = async (req, res) => {
   try {
-    const { patientId, doctorId, date, timeSlot, reason } = req.body;
+    const { doctorId, date, timeSlot, reason } = req.body;
+    // prefer authenticated user as patientId when available
+    const patientId = req.body.patientId || (req.user && req.user.id);
 
     // Check all required fields are provided
     if (!patientId || !doctorId || !date || !timeSlot) {

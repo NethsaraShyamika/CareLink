@@ -15,6 +15,7 @@ import PatientDashboard from "./pages/patient/PatientDashboard";
 import DoctorDashboard from "./pages/doctor/DoctorDashboard";
 import SymptomCheck from "./pages/patient/Symptomcheck";
 import SymptomHistory from "./pages/patient/Symptomhistory";
+import PatientAppointment from "./pages/patient/PatientAppointment";
 
 function App() {
   const getQueryParam = (param) => {
@@ -40,6 +41,7 @@ function App() {
         <Route path="/patient/symptom-check" element={<SymptomCheck />} />
         <Route path="/patient/symptom-history" element={<SymptomHistory />} />
         <Route path="/payments/history" element={<PaymentHistory />} />
+        <Route path="/patient/appointments" element={<PatientAppointment />} />
 
 
         {/* Doctor */}
