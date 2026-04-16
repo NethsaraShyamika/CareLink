@@ -1,4 +1,5 @@
 import { useState } from "react";
+import PatientManagement from "./PatientManagement";
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap');
@@ -461,6 +462,7 @@ const styles = `
 const TABS = [
   { id: "overview", icon: "⚡", label: "Overview" },
   { id: "users", icon: "👥", label: "User Management" },
+  { id: "patients", icon: "🧑‍🤝‍🧑", label: "Patient Management" },
   { id: "doctors", icon: "🩺", label: "Doctor Verification", badge: "3" },
   { id: "appointments", icon: "📅", label: "Appointments" },
   { id: "payments", icon: "💳", label: "Payments" },
@@ -517,7 +519,8 @@ const CHART_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "S
 function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const [doctorList, setDoctorList] = useState(DOCTORS);
-  const [userList] = useState(USERS);
+  // Only show non-patient users for User Management
+  const [userList] = useState(USERS.filter(u => u.role !== "Patient"));
 
   const handleVerify = (name, action) => {
     setDoctorList(prev => prev.filter(d => d.name !== name));
@@ -692,7 +695,6 @@ function AdminDashboard() {
                       <th>Role</th>
                       <th>Status</th>
                       <th>Joined</th>
-                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -709,11 +711,8 @@ function AdminDashboard() {
                         </td>
                         <td><span className={`cl-badge ${u.role === "Doctor" ? "cl-badge-blue" : "cl-badge-gray"}`}>{u.role}</span></td>
                         <td><span className={`cl-badge ${statusBadge(u.status)}`}>● {u.status}</span></td>
-                        <td style={{ color: "rgba(255,255,255,0.45)", fontSize: "12px" }}>{u.joined}</td>
-                        <td>
-                          <button className="cl-verify-btn approve">Edit</button>
-                          <button className="cl-verify-btn reject">Block</button>
-                        </td>
+                        <td style={{ color: "rgba(255,255,255,0.45)", fontSize: "12px" }}>{u.createdAt ? new Date(u.createdAt).toLocaleDateString() : u.joined}</td>
+                        {/* Actions column removed */}
                       </tr>
                     ))}
                   </tbody>
@@ -721,6 +720,9 @@ function AdminDashboard() {
               </div>
             </div>
           )}
+
+          {/* ── PATIENT MANAGEMENT ── */}
+          {activeTab === "patients" && <PatientManagement />}
 
           {/* ── DOCTOR VERIFICATION ── */}
           {activeTab === "doctors" && (
