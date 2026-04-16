@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
+
 // ─── Color Palette (Doctor – Indigo Accent) ──────────────────────────────────
 // Primary:       #2563EB   Accent:        #4F46E5
 // Accent Dark:   #3730A3   Accent Light:  #E0E7FF
@@ -607,7 +608,7 @@ export default function DoctorDashboard() {
             <div className="sb-section">
               <div className="sb-section-label">Overview</div>
               <NavItem icon={Icons.home}  label="Dashboard"    active={nav==="dashboard"}    onClick={()=>setNav("dashboard")} />
-              <NavItem icon={Icons.cal}   label="Appointments" active={nav==="appointments"} onClick={()=>setNav("appointments")} badge={pending||undefined} />
+              <NavItem icon={Icons.cal}   label="Appointments" active={nav==="appointments"} onClick={()=>setNav("doctor/appointments")} badge={pending||undefined} />
               <NavItem icon={Icons.users} label="My Patients"  active={nav==="patients"}     onClick={()=>setNav("patients")} />
             </div>
 
