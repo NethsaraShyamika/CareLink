@@ -20,7 +20,6 @@ const router = express.Router();
 // 👤 Profile
 router.post("/profile", protect, authorizeRoles("doctor"), createOrUpdateProfile);
 router.get("/me", protect, authorizeRoles("doctor"), getMyProfile);
-router.get("/:userId", getDoctorByUserId);
 
 // 📅 Availability
 router.put("/availability", protect, authorizeRoles("doctor"), updateAvailability);
@@ -34,6 +33,8 @@ router.put("/admin/reject/:id", protect, authorizeRoles("admin"), rejectDoctor);
 // 🔍 Search
 router.get("/", getAllDoctors);
 router.get("/specialization/:specialization", getDoctorsBySpecialization);
-router.get("/search/query", searchDoctors);
+router.get("/search", searchDoctors);
+
+router.get("/:userId", getDoctorByUserId);
 
 export default router;

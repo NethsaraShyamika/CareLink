@@ -182,7 +182,10 @@ const BookModal = ({ onClose, onBook, patientId, token }) => {
 
   const searchDoctors = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/doctors/search`, {
+      // Use doctor-service (port 3002) for doctor search
+      const DOCTOR_API = import.meta.env.VITE_DOCTOR_SERVICE_URL || "http://localhost:3002/api";
+      const DOCTOR_BASE = DOCTOR_API.replace(/\/$/, "");
+      const res = await axios.get(`${DOCTOR_BASE}/doctors/search`, {
         params: { specialty: searchSpec },
         headers: { Authorization: `Bearer ${token}` },
       });

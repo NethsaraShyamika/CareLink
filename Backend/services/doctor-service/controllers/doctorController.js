@@ -193,16 +193,23 @@ export const getDoctorsBySpecialization = async (req, res) => {
 // Search doctors
 export const searchDoctors = async (req, res) => {
   try {
-    const keyword = req.query.keyword;
+    const { keyword, specialty } = req.query;
 
-    const doctors = await Doctor.find({
-      verificationStatus: "approved",
-      $or: [
+    let query = { verificationStatus: "approved" };
+
+    if (keyword) {
+      query.$or = [
         { firstName: { $regex: keyword, $options: "i" } },
         { lastName: { $regex: keyword, $options: "i" } },
         { specialization: { $regex: keyword, $options: "i" } },
-      ],
-    });
+      ];
+    }
+
+    if (specialty) {
+      query.specialization = new RegExp(specialty, "i");
+    }
+
+    const doctors = await Doctor.find(query);
 
     res.json(doctors);
   } catch (error) {

@@ -1,7 +1,7 @@
-const jwt = require("jsonwebtoken");
+import jwt from "jsonwebtoken";
 
 // 🔐 Protect route
-const protect = (req, res, next) => {
+export const protect = (req, res, next) => {
   let token = req.headers.authorization;
 
   // ✅ FIRST check token exists
@@ -32,7 +32,7 @@ const protect = (req, res, next) => {
 
 
 // 👤 Only Patient
-const patientOnly = (req, res, next) => {
+export const patientOnly = (req, res, next) => {
   if (req.user.role !== "patient") {
     return res.status(403).json({
       message: "Access denied: Patients only",
@@ -43,7 +43,7 @@ const patientOnly = (req, res, next) => {
 
 
 // 🩺 Only Doctor
-const doctorOnly = (req, res, next) => {
+export const doctorOnly = (req, res, next) => {
   if (req.user.role !== "doctor") {
     return res.status(403).json({
       message: "Access denied: Doctors only",
@@ -54,7 +54,7 @@ const doctorOnly = (req, res, next) => {
 
 
 // 🛡 Admin Only
-const adminOnly = (req, res, next) => {
+export const adminOnly = (req, res, next) => {
   if (req.user.role !== "admin") {
     return res.status(403).json({
       message: "Access denied: Admins only",
@@ -65,20 +65,11 @@ const adminOnly = (req, res, next) => {
 
 
 // 🔄 Patient OR Doctor
-const patientOrDoctor = (req, res, next) => {
+export const patientOrDoctor = (req, res, next) => {
   if (!["patient", "doctor"].includes(req.user.role)) {
     return res.status(403).json({
       message: "Access denied",
     });
   }
   next();
-};
-
-
-module.exports = {
-  protect,
-  patientOnly,
-  doctorOnly,
-  adminOnly,
-  patientOrDoctor,
 };
