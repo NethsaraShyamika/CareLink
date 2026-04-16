@@ -12,6 +12,8 @@ import {
   getPaymentHistory,
   getPaymentById,
   getPaymentByAppointment,
+  getPaymentBySessionId,
+  confirmStripePayment,
   getAllPayments,
 } from "../controllers/paymentController.js";
 
@@ -66,6 +68,22 @@ router.get(
   verifyToken,
   requireRole("patient", "doctor", "admin"),
   getPaymentByAppointment
+);
+
+// By session ID
+router.get(
+  "/session/:sessionId",
+  verifyToken,
+  requireRole("patient", "admin"),
+  getPaymentBySessionId
+);
+
+// Confirm stripe payment on return
+router.post(
+  "/stripe/confirm",
+  verifyToken,
+  requireRole("patient"),
+  confirmStripePayment
 );
 
 // Admin all payments

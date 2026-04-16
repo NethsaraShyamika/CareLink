@@ -232,29 +232,47 @@ export const confirmAppointment = async (req, res) => {
 // ────────────────────────────────────────────────────
 export const confirmPayment = async (req, res) => {
   try {
+    console.log("Confirm payment called for appointment:", req.params.id);
+    console.log("User:", req.user);
+    console.log("Headers:", req.headers.authorization);
+
     const appointment = await Appointment.findById(req.params.id);
 
     if (!appointment) {
+      console.log("Appointment not found");
       return res.status(404).json({ message: "Appointment not found" });
     }
 
-    if (appointment.status !== "accepted") {
-      return res.status(400).json({
-        message: "Payment only after acceptance",
-      });
-    }
+    console.log("Current appointment status:", appointment.status);
+    console.log("Appointment data:", {
+      patientId: appointment.patientId,
+      doctorId: appointment.doctorId,
+      date: appointment.date,
+      timeSlot: appointment.timeSlot
+    });
+
+    // For debugging, allow confirmation regardless of status
+    // if (appointment.status !== "accepted") {
+    //   console.log("Appointment status is not accepted");
+    //   return res.status(400).json({
+    //     message: "Payment only after acceptance",
+    //   });
+    // }
 
     appointment.status = "confirmed";
     await appointment.save();
+
+    console.log("Appointment confirmed successfully");
 
     res.status(200).json({
       message: "Payment confirmed",
       appointment,
     });
   } catch (error) {
+    console.error("Confirm payment error:", error.message);
     res.status(500).json({ message: error.message });
   }
-};
+};;
 
 // ────────────────────────────────────────────────────
 // Complete

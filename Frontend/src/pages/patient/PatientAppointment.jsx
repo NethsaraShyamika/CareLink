@@ -34,6 +34,9 @@ import {
 const RAW_API = import.meta.env.VITE_APPOINTMENT_SERVICE_URL || "http://localhost:5002";
 const API_BASE = RAW_API.replace(/\/$/, "") + (RAW_API.endsWith("/api") ? "" : "/api");
 
+// Payment service URL
+const PAYMENT_API = "http://localhost:3005/api";
+
 // ─── Status config ──────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
   pending:     { color: "#F59E0B", bg: "#FEF3C7", label: "Pending",     icon: AlertCircle },
@@ -149,7 +152,7 @@ const Sidebar = ({ user, chatbotOpen, setChatbotOpen, navigate, activePage }) =>
       {/* User card */}
       <div className="mt-auto px-4 py-4">
         <div className="bg-[#CCFBF1] rounded-xl p-3 flex items-center gap-3">
-          <div className="bg-[#0D9488] text-white rounded-full w-10 h-10 flex items-center justify-center font-bold text-sm flex-shrink-0">
+          <div className="bg-[#0D9488] text-white rounded-full w-10 h-10 flex items-center justify-center font-bold text-sm shrink-0">
             {initials}
           </div>
           <div className="min-w-0">
@@ -218,7 +221,7 @@ const BookModal = ({ onClose, onBook, patientId, token }) => {
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg" style={{ maxHeight: "90vh", overflowY: "auto" }}>
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#14B8A6] to-[#2563EB] p-6 rounded-t-2xl">
+        <div className="bg-linear-to-r from-[#14B8A6] to-[#2563EB] p-6 rounded-t-2xl">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-white font-bold text-xl">Book Appointment</h2>
@@ -344,22 +347,41 @@ const BookModal = ({ onClose, onBook, patientId, token }) => {
 };
 
 // ─── Pay Modal ───────────────────────────────────────────────────────────────
-const PayModal = ({ appointment, onClose, token, onPaid }) => {
+const PayModal = ({ appointment, doctorsMap, onClose, token, onPaid }) => {
   const [method, setMethod] = useState("card");
   const [paying, setPaying] = useState(false);
   const [paid, setPaid] = useState(false);
   const [error, setError] = useState("");
 
+  const doctorId = typeof appointment.doctorId === "object"
+    ? appointment.doctorId._id || appointment.doctorId.toString()
+    : appointment.doctorId;
+  const doctor = doctorsMap ? doctorsMap[doctorId] : null;
+  const amount = doctor?.consultationFee;
+
   const handlePay = async () => {
+    if (!doctor || amount == null) {
+      setError("Unable to determine the consultation fee. Please try again later.");
+      return;
+    }
+
     setPaying(true);
     setError("");
+
     try {
-      // Call appointment-service to mark payment/confirm
-      await axios.put(`${API_BASE}/appointments/${appointment._id}/confirm-payment`, {}, {
+      const response = await axios.post(`${PAYMENT_API}/payments/stripe/create-checkout`, {
+        appointmentId: appointment._id,
+        doctorId,
+        amount: amount.toString(),
+      }, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setPaid(true);
-      if (onPaid) onPaid();
+
+      if (response.data.success && response.data.url) {
+        window.location.href = response.data.url;
+      } else {
+        setError("Failed to create payment session");
+      }
     } catch (e) {
       setError(e.response?.data?.message || "Payment failed");
     } finally {
@@ -383,13 +405,13 @@ const PayModal = ({ appointment, onClose, token, onPaid }) => {
           </div>
         ) : (
           <>
-            <div className="bg-gradient-to-r from-[#14B8A6] to-[#2563EB] p-6 rounded-t-2xl flex items-center justify-between">
+            <div className="bg-linear-to-r from-[#14B8A6] to-[#2563EB] p-6 rounded-t-2xl flex items-center justify-between">
               <div>
                 <h2 className="text-white font-bold text-xl">Pay for Appointment</h2>
                 <p className="text-[#CCFBF1] text-sm mt-0.5">Secure payment portal</p>
               </div>
               <button onClick={onClose} className="text-white/80 hover:text-white bg-white/10 rounded-full p-2 transition">
-                <X size={18} />
+                <X size={25} />
               </button>
             </div>
 
@@ -411,74 +433,15 @@ const PayModal = ({ appointment, onClose, token, onPaid }) => {
                 </div>
                 <div className="border-t border-[#E5E7EB] mt-3 pt-3 flex justify-between">
                   <span className="font-semibold text-[#111827]">Consultation Fee</span>
-                  <span className="font-bold text-[#14B8A6] text-lg">LKR 2,500</span>
+                  <span className="font-bold text-[#14B8A6] text-lg">
+                    {amount != null ? `LKR ${amount.toLocaleString()}` : "Loading..."}
+                  </span>
                 </div>
               </div>
 
-              {/* Payment method */}
-              <div>
-                <label className="text-sm font-semibold text-[#111827] mb-2 block">Payment Method</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { id: "card", label: "Credit Card", icon: "💳" },
-                    { id: "bank", label: "Bank Transfer", icon: "🏦" },
-                    { id: "cash", label: "Cash on Visit", icon: "💵" },
-                  ].map(m => (
-                    <button
-                      key={m.id}
-                      onClick={() => setMethod(m.id)}
-                      className={`flex flex-col items-center py-3 px-2 rounded-xl border-2 transition text-xs font-medium ${
-                        method === m.id ? "border-[#14B8A6] bg-[#CCFBF1] text-[#0D9488]" : "border-[#E5E7EB] text-[#6B7280] hover:border-[#14B8A6]"
-                      }`}
-                    >
-                      <span className="text-xl mb-1">{m.icon}</span>
-                      {m.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Card details (only for card method) */}
-              {method === "card" && (
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    placeholder="Card number"
-                    maxLength={19}
-                    className="w-full border border-[#E5E7EB] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#14B8A6] focus:border-transparent"
-                  />
-                  <div className="grid grid-cols-2 gap-3">
-                    <input
-                      type="text"
-                      placeholder="MM / YY"
-                      className="border border-[#E5E7EB] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#14B8A6] focus:border-transparent"
-                    />
-                    <input
-                      type="text"
-                      placeholder="CVV"
-                      maxLength={3}
-                      className="border border-[#E5E7EB] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#14B8A6] focus:border-transparent"
-                    />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Cardholder name"
-                    className="w-full border border-[#E5E7EB] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#14B8A6] focus:border-transparent"
-                  />
-                </div>
-              )}
-
-              {method === "bank" && (
-                <div className="bg-[#EFF6FF] rounded-xl p-4 text-sm text-[#2563EB]">
-                  <p className="font-semibold mb-1">Bank Transfer Details</p>
-                  <p>Bank: People's Bank · Account: 123-456-789</p>
-                  <p>Reference: Your Appointment ID</p>
-                </div>
-              )}
-
-              {method === "cash" && (
-                <div className="bg-[#FEF3C7] rounded-xl p-4 text-sm text-[#92400E]">
-                  Please arrive 10 minutes early and pay at the reception desk.
+              {error && (
+                <div className="bg-[#FEE2E2] text-[#EF4444] text-sm px-4 py-3 rounded-lg flex items-center gap-2">
+                  <AlertCircle size={16} /> {error}
                 </div>
               )}
 
@@ -488,11 +451,11 @@ const PayModal = ({ appointment, onClose, token, onPaid }) => {
                 </button>
                 <button
                   onClick={handlePay}
-                  disabled={paying}
-                  className="flex-1 bg-gradient-to-r from-[#14B8A6] to-[#2563EB] text-white py-2.5 rounded-lg font-semibold hover:opacity-90 transition text-sm flex items-center justify-center gap-2 disabled:opacity-60"
+                  disabled={paying || amount == null}
+                  className="flex-1 bg-linear-to-r from-[#14B8A6] to-[#2563EB] text-white py-2.5 rounded-lg font-semibold hover:opacity-90 transition text-sm flex items-center justify-center gap-2 disabled:opacity-60"
                 >
                   {paying ? <Loader2 size={16} className="animate-spin" /> : <CreditCard size={16} />}
-                  {paying ? "Processing..." : "Pay LKR 2,500"}
+                  {paying ? "Processing..." : amount != null ? `Pay LKR ${amount.toLocaleString()}` : "Loading fee..."}
                 </button>
               </div>
             </div>
@@ -533,12 +496,12 @@ const canReschedule = ["pending", "rescheduled"].includes(appt.status);
         <div className="flex-1 min-w-0">
           {/* Doctor */}
           <div className="flex items-center gap-2 mb-1">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#14B8A6] to-[#2563EB] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+            <div className="w-9 h-9 rounded-full bg-linear-to-br from-[#14B8A6] to-[#2563EB] flex items-center justify-center text-white text-xs font-bold shrink-0">
               <Stethoscope size={16} />
             </div>
             <div>
               <div className="font-semibold text-[#111827] text-sm">
-                {doctorsMap && doctorsMap[appt.doctorId] ? `Dr. ${doctorsMap[appt.doctorId]}` : `Doctor ID: ${appt.doctorId.slice(-8)}`}
+                {doctorsMap && doctorsMap[appt.doctorId] ? `Dr. ${doctorsMap[appt.doctorId].name}` : `Doctor ID: ${appt.doctorId.slice(-8)}`}
               </div>
               <div className="text-xs text-[#9CA3AF]">Appointment</div>
             </div>
@@ -580,7 +543,7 @@ const canReschedule = ["pending", "rescheduled"].includes(appt.status);
             {canPay && (
               <button
                 onClick={() => onPay(appt)}
-                className="flex items-center gap-1 bg-gradient-to-r from-[#14B8A6] to-[#2563EB] text-white text-xs px-3 py-1.5 rounded-lg font-semibold hover:opacity-90 transition shadow-sm"
+                className="flex items-center gap-1 bg-linear-to-r from-[#14B8A6] to-[#2563EB] text-white text-xs px-3 py-1.5 rounded-lg font-semibold hover:opacity-90 transition shadow-sm"
               >
                 <CreditCard size={12} /> Pay
               </button>
@@ -595,7 +558,7 @@ const canReschedule = ["pending", "rescheduled"].includes(appt.status);
                 <MoreVertical size={16} />
               </button>
               {menuOpen && (
-                <div className="absolute right-0 top-8 bg-white border border-[#E5E7EB] rounded-xl shadow-lg z-10 py-1 min-w-[140px]">
+                <div className="absolute right-0 top-8 bg-white border border-[#E5E7EB] rounded-xl shadow-lg z-10 py-1 min-w-35">
                   {canReschedule && (
                     <button
                       onClick={() => { onReschedule(appt); setMenuOpen(false); }}
@@ -656,7 +619,7 @@ const RescheduleModal = ({ appointment, onClose, onReschedule }) => {
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="bg-gradient-to-r from-[#14B8A6] to-[#2563EB] p-6 rounded-t-2xl flex justify-between items-center">
+        <div className="bg-linear-to-r from-[#14B8A6] to-[#2563EB] p-6 rounded-t-2xl flex justify-between items-center">
           <div>
             <h2 className="text-white font-bold text-xl">Reschedule Appointment</h2>
             <p className="text-[#CCFBF1] text-sm mt-0.5">Pick a new date and time</p>
@@ -747,7 +710,12 @@ const PatientAppointment = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       const map = {};
-      res.data.forEach(d => { map[d._id] = `${d.firstName} ${d.lastName}`; });
+      res.data.forEach(d => {
+        map[d._id] = {
+          name: `${d.firstName} ${d.lastName}`,
+          consultationFee: d.consultationFee,
+        };
+      });
       setDoctorsMap(map);
     } catch {
       console.log("Failed to load doctors map");
@@ -915,7 +883,7 @@ const PatientAppointment = () => {
             {/* Book button */}
             <button
               onClick={() => setShowBookModal(true)}
-              className="flex items-center gap-2 bg-gradient-to-r from-[#14B8A6] to-[#2563EB] text-white px-5 py-2.5 rounded-xl font-semibold hover:opacity-90 transition shadow-md text-sm"
+              className="flex items-center gap-2 bg-linear-to-r from-[#14B8A6] to-[#2563EB] text-white px-5 py-2.5 rounded-xl font-semibold hover:opacity-90 transition shadow-md text-sm"
             >
               <Plus size={18} /> Book Appointment
             </button>
@@ -984,6 +952,7 @@ const PatientAppointment = () => {
       {payTarget && (
         <PayModal
           appointment={payTarget}
+          doctorsMap={doctorsMap}
           onClose={() => setPayTarget(null)}
           token={token}
           onPaid={fetchAppointments}

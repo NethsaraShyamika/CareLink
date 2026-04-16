@@ -234,6 +234,86 @@ export async function getPaymentByAppointment(req, res) {
 
 
 // ======================================================
+// GET PAYMENT BY SESSION ID
+// ======================================================
+// GET /api/payments/session/:sessionId
+export async function getPaymentBySessionId(req, res) {
+  try {
+    console.log("Getting payment by session ID:", req.params.sessionId);
+    console.log("User:", req.user);
+
+    const payment = await Payment.findOne({
+      gatewayOrderId: req.params.sessionId,
+    }).select("-gatewayResponse -__v");
+
+    console.log("Payment found:", payment ? "yes" : "no");
+
+    if (!payment) {
+      return res.status(404).json({
+        message: "No payment found for this session.",
+      });
+    }
+
+    if (
+      req.user.role === "patient" &&
+      payment.patientId.toString() !== req.user.id
+    ) {
+      return res.status(403).json({ message: "Access denied." });
+    }
+
+    res.status(200).json({
+      success: true,
+      payment,
+    });
+  } catch (err) {
+    console.error("Session payment error:", err.message);
+    res.status(500).json({ message: "Failed to fetch payment." });
+  }
+}
+
+
+// ======================================================
+// CONFIRM PAYMENT BY SESSION ID
+// ======================================================
+// POST /api/payments/stripe/confirm
+export async function confirmStripePayment(req, res) {
+  try {
+    const { sessionId } = req.body;
+
+    if (!sessionId) {
+      return res.status(400).json({ message: "sessionId is required." });
+    }
+
+    const payment = await Payment.findOne({
+      gatewayOrderId: sessionId,
+    });
+
+    if (!payment) {
+      return res.status(404).json({ message: "No payment found for this session." });
+    }
+
+    if (
+      req.user.role === "patient" &&
+      payment.patientId.toString() !== req.user.id
+    ) {
+      return res.status(403).json({ message: "Access denied." });
+    }
+
+    payment.status = "completed";
+    await payment.save();
+
+    res.status(200).json({
+      success: true,
+      payment,
+    });
+  } catch (err) {
+    console.error("Confirm stripe payment error:", err.message);
+    res.status(500).json({ message: "Failed to confirm payment." });
+  }
+}
+
+
+// ======================================================
 // ADMIN - GET ALL PAYMENTS
 // ======================================================
 // GET /api/payments/admin/all
