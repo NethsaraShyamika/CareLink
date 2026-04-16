@@ -1,6 +1,30 @@
 import { useState, useEffect } from "react";
+import { useUser } from "../../contextUser.jsx";
+import { useNavigate } from "react-router-dom";
+import {
+  LayoutDashboard,
+  Calendar,
+  Folder,
+  Pill,
+  Bot,
+  Users,
+  Mail,
+  ShieldCheck,
+  Settings,
+  Bell,
+  Search,
+  User,
+  X,
+  LogOut,
+  Stethoscope,
+  FileText,
+  Activity,
+  MessageSquare,
+  Clock,
+  ChevronDown,
+} from "lucide-react";
 
-const API_BASE = "/api/symptoms";
+const API_BASE = (import.meta.env.VITE_API_BASE || "http://localhost:5000") + "/api/symptoms";
 
 const URGENCY_CONFIG = {
   routine: { label: "Routine", color: "#22C55E", bg: "#F0FDF4", dot: "#22C55E" },
@@ -212,13 +236,19 @@ function HistoryCard({ check, onExpand, expanded }) {
   );
 }
 
-export default function SymptomHistory({ token, onNewCheck }) {
+export default function SymptomHistory({ token: propToken, onNewCheck }) {
+  // Get token from prop or localStorage
+  const token = propToken || localStorage.getItem("token");
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [expandedId, setExpandedId] = useState(null);
   const [search, setSearch] = useState("");
   const [urgencyFilter, setUrgencyFilter] = useState("all");
+
+  const { user } = useUser();
+  const navigate = useNavigate();
+  const [chatbotOpen, setChatbotOpen] = useState(false);
 
   useEffect(() => {
     fetchHistory();
@@ -230,8 +260,17 @@ export default function SymptomHistory({ token, onNewCheck }) {
     try {
       const res = await fetch(`${API_BASE}/history`, {
         headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
-      const data = await res.json();
+      console.log("Fetch to:", `${API_BASE}/history`, "Status:", res.status);
+      const text = await res.text();
+      let data;
+      try {
+         data = JSON.parse(text);
+      } catch (e) {
+         console.error("Failed to parse JSON. Server returned:", text.substring(0, 300));
+         throw new Error("Server returned an invalid response (Check console).");
+      }
       if (!res.ok) throw new Error(data.message || "Failed to load history");
       setHistory(data.checks || []);
     } catch (err) {
@@ -271,20 +310,185 @@ export default function SymptomHistory({ token, onNewCheck }) {
   };
 
   return (
-    <div style={styles.wrapper}>
-      {/* Header */}
-      <div style={styles.header}>
-        <div>
-          <h2 style={styles.headerTitle}>Symptom History</h2>
-          <p style={styles.headerSub}>Your previous AI health assessments</p>
+    <div style={styles.container}>
+      {/* Sidebar */}
+      <aside className="w-64 bg-[#FFFFFF] border-[#E5E7EB] border-r flex flex-col min-h-screen">
+        <div className="flex items-center gap-2 px-6 py-6 border-b border-[#E5E7EB]">
+          <div className="bg-[#14B8A6] rounded-full w-10 h-10 flex items-center justify-center text-white text-2xl font-bold">
+            +
+          </div>
+          <div>
+            <div className="font-bold text-lg text-[#111827]">CareLink</div>
+            <div className="text-xs text-[#6B7280]">Patient Portal</div>
+          </div>
         </div>
-        <button onClick={onNewCheck} style={styles.newCheckBtn}>
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M7 2V12M2 7H12" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-          New Check
-        </button>
-      </div>
+        <nav className="flex-1 px-4 py-6">
+          <ul className="space-y-2">
+            <li>
+              <a
+                href="#"
+                onClick={() => navigate("/patient/dashboard")}
+                className="flex items-center gap-3 px-3 py-2 text-[#6B7280] hover:bg-[#CCFBF1] rounded-lg"
+              >
+                <LayoutDashboard size={18} />
+                Dashboard
+              </a>
+            </li>
+            <li>
+              <a
+                href="#"
+                className="flex items-center gap-3 px-3 py-2 text-[#6B7280] hover:bg-[#CCFBF1] rounded-lg"
+              >
+                <span className="material-icons">event</span>
+                Appointments
+                <span className="ml-auto bg-[#CCFBF1] text-[#14B8A6] text-xs px-2 py-0.5 rounded-full">
+                  3
+                </span>
+              </a>
+            </li>
+            <li>
+              <a
+                href="#"
+                className="flex items-center gap-3 px-3 py-2 text-[#6B7280] hover:bg-[#CCFBF1] rounded-lg"
+              >
+                <span className="material-icons">folder</span>
+                Medical Records
+              </a>
+            </li>
+            <li>
+              <a
+                href="#"
+                className="flex items-center gap-3 px-3 py-2 text-[#6B7280] hover:bg-[#CCFBF1] rounded-lg"
+              >
+                <span className="material-icons">medication</span>
+                Prescriptions
+                <span className="ml-auto bg-[#CCFBF1] text-[#0D9488] text-xs px-2 py-0.5 rounded-full">
+                  2
+                </span>
+              </a>
+            </li>
+
+            <ul>
+              {/* Chatbot Dropdown Header */}
+              <li
+                onClick={() => setChatbotOpen(!chatbotOpen)}
+                className="flex items-center justify-between gap-3 px-3 py-2 text-[#6B7280] hover:bg-[#CCFBF1] rounded-lg cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <Bot size={18} />
+                  Chatbot
+                </div>
+
+                <ChevronDown
+                  size={16}
+                  className={`transition-transform ${chatbotOpen ? "rotate-180" : ""}`}
+                />
+              </li>
+
+              {/* Dropdown Items */}
+              {chatbotOpen && (
+                <>
+                  <li
+                    onClick={() => navigate("/patient/symptom-check")}
+                    className="flex items-center gap-3 pl-10 pr-3 py-2 text-[#6B7280] hover:bg-[#CCFBF1] rounded-lg cursor-pointer"
+                  >
+                    <Activity size={18} />
+                    Symptom Checker
+                  </li>
+
+                  <li className="bg-[#CCFBF1] rounded-lg">
+                    <a
+                      href="#"
+                      className="flex items-center gap-3 pl-10 pr-3 py-2 font-medium text-[#14B8A6]"
+                    >
+                      <Clock size={18} />
+                      Symptom History
+                    </a>
+                  </li>
+                </>
+              )}
+            </ul>
+          </ul>
+          <div className="mt-8">
+            <div className="text-xs text-[#9CA3AF] uppercase mb-2">Care</div>
+            <ul className="space-y-2">
+              <li>
+                <a
+                  href="#"
+                  className="flex items-center gap-3 px-3 py-2 text-[#6B7280] hover:bg-[#CCFBF1] rounded-lg"
+                >
+                  <span className="material-icons">groups</span>
+                  My Doctors
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#"
+                  className="flex items-center gap-3 px-3 py-2 text-[#6B7280] hover:bg-[#CCFBF1] rounded-lg"
+                >
+                  <span className="material-icons">mail</span>
+                  Messages
+                  <span className="ml-auto bg-[#EFF6FF] text-[#2563EB] text-xs px-2 py-0.5 rounded-full">
+                    1
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#"
+                  className="flex items-center gap-3 px-3 py-2 text-[#6B7280] hover:bg-[#CCFBF1] rounded-lg"
+                >
+                  <span className="material-icons">verified_user</span>
+                  Insurance
+                </a>
+              </li>
+            </ul>
+          </div>
+          <div className="mt-8">
+            <div className="text-xs text-[#9CA3AF] uppercase mb-2">Account</div>
+            <ul className="space-y-2">
+              <li>
+                <a
+                  href="#"
+                  className="flex items-center gap-3 px-3 py-2 text-[#6B7280] hover:bg-[#CCFBF1] rounded-lg"
+                >
+                  <span className="material-icons">settings</span>
+                  Settings
+                </a>
+              </li>
+            </ul>
+          </div>
+        </nav>
+
+        {/* Sidebar user card */}
+        <div className="mt-auto px-6 py-4 bg-[#CCFBF1] rounded-lg m-4 flex items-center gap-3">
+          <div className="bg-[#0D9488] text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">
+            {user?.firstName && user?.lastName ? `${user.firstName[0]}${user.lastName[0]}` : 'U'}
+          </div>
+          <div>
+            <div className="font-semibold text-[#0D9488]">
+              {user?.firstName} {user?.lastName}
+            </div>
+            <div className="text-xs text-[#14B8A6]">Patient</div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <div style={styles.wrapper}>
+        {/* Header */}
+        <div style={styles.header}>
+          <div>
+            <h2 style={styles.headerTitle}>Symptom History</h2>
+            <p style={styles.headerSub}>Your previous AI health assessments</p>
+          </div>
+          <button onClick={onNewCheck} style={styles.newCheckBtn}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M7 2V12M2 7H12" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            New Check
+          </button>
+        </div>
 
       {/* Stats Bar */}
       {!loading && history.length > 0 && (
@@ -410,6 +614,7 @@ export default function SymptomHistory({ token, onNewCheck }) {
           Showing {filtered.length} of {history.length} records · Last synced just now
         </p>
       )}
+      </div>
     </div>
   );
 }
@@ -432,7 +637,13 @@ function LoadingSkeleton() {
 }
 
 const styles = {
+  container: {
+    display: "flex",
+    minHeight: "100vh",
+    fontFamily: "'DM Sans', 'Outfit', system-ui, sans-serif",
+  },
   wrapper: {
+    flex: 1,
     maxWidth: 680,
     margin: "0 auto",
     padding: "24px 16px",

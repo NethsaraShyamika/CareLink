@@ -39,7 +39,7 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-300 px-4 py-8">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-100 to-blue-300 px-4 py-8">
       <div className="bg-white bg-opacity-90 shadow-xl rounded-3xl p-10 w-full max-w-md">
         <h2 className="text-3xl font-bold text-center text-blue-900 mb-8">Create Your CareLink Account</h2>
         <form onSubmit={handleSubmit} className="space-y-6">

@@ -321,6 +321,7 @@ export default function AdminPaymentsManager() {
     if (filters.gateway) q.set("gateway", filters.gateway);
     fetch(`${API}/payments/admin/all?${q}`, {
       headers: { Authorization: `Bearer ${getToken()}` },
+      credentials: "include",
     })
       .then((r) => r.json())
       .then((d) => { if (d.success) { setPayments(d.payments); setTotal(d.total); } })

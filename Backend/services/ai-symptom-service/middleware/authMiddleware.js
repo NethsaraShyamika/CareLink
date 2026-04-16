@@ -9,11 +9,15 @@ const verifyToken = (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'icomputers');
+    const secret = process.env.JWT_SECRET || 'mysecretkey123';
+    console.log('🔐 Verifying token with secret:', secret);
+    const decoded = jwt.verify(token, secret);
     req.user = decoded; // { userId, role, ... }
+    console.log('✅ Token verified, user:', decoded);
     next();
   } catch (err) {
-    return res.status(403).json({ message: "Invalid or expired token" });
+    console.error('❌ Token verification failed:', err.message);
+    return res.status(403).json({ message: "Invalid or expired token", error: err.message });
   }
 };
 

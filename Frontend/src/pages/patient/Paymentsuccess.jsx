@@ -262,6 +262,7 @@ export default function PaymentSuccess({ onGoHome, onViewHistory }) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token()}`,
         },
+        credentials: "include",
         body: JSON.stringify({ paymentIntentId }),
       });
       const json = await res.json();
