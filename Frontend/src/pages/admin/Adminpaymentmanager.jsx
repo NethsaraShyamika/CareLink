@@ -625,12 +625,13 @@ const STATUS_COLORS = {
 };
 
 const TABS = [
-  { id: "overview",      icon: "⚡",  label: "Overview" },
-  { id: "users",         icon: "👥",  label: "User Management" },
-  { id: "doctors",       icon: "🩺",  label: "Doctor Verification", badge: "3" },
-  { id: "appointments",  icon: "📅",  label: "Appointments" },
-  { id: "payments",      icon: "💳",  label: "Payment Management" },
-  { id: "notifications", icon: "🔔",  label: "Notifications", badge: "5" },
+  { id: "overview", icon: "⚡", label: "Overview" },
+  { id: "users", icon: "👥", label: "User Management" },
+  { id: "patients", icon: "🧑‍🤝‍🧑", label: "Patient Management" },
+  { id: "doctors", icon: "🩺", label: "Doctor Verification", badge: "3" },
+  { id: "appointments", icon: "📅", label: "Appointments" },
+  { id: "payments", icon: "💳", label: "Payment Management" },
+  { id: "notifications", icon: "🔔", label: "Notifications", badge: "5" },
 ];
 
 const fmt   = (n) => "LKR " + Number(n).toLocaleString("en-US");
@@ -704,6 +705,8 @@ function AdminPaymentsManager() {
   const [filters, setFilters]     = useState({ status: "", gateway: "" });
   const [search, setSearch]       = useState("");
   const [selected, setSelected]   = useState(null);
+  const activeTab = "payments";
+  const setActiveTab = (id) => navigate("/admin/dashboard");
   const limit = 15;
 
   const load = useCallback(() => {
@@ -772,39 +775,70 @@ function AdminPaymentsManager() {
       <div className="cl-admin">
 
         {/* ── SIDEBAR ── */}
-        <aside className="cl-sidebar">
-          <div className="cl-brand">
-            <div className="cl-brand-logo">🏥</div>
-            <div className="cl-brand-name">Care<span>Link</span></div>
-            <div className="cl-brand-badge">Admin Portal</div>
+        <aside className="w-64 min-h-screen bg-white/5 border-r border-white/10 fixed left-0 top-0 bottom-0 flex flex-col py-7 z-10">
+          {/* Brand */}
+          <div className="px-6 pb-8 border-b border-white/10 mb-4">
+            <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-blue-600 rounded-xl flex items-center justify-center text-lg shadow-lg shadow-sky-500/30 mb-3">
+              🏥
+            </div>
+            <div className="font-syne text-xl font-extrabold tracking-tight">
+              Care<span className="text-sky-500">Link</span>
+            </div>
+            <div className="inline-block mt-1 px-2 py-0.5 bg-sky-500/10 border border-sky-500/20 rounded-full text-[10px] text-sky-400 uppercase font-semibold tracking-wider">
+              Admin Portal
+            </div>
           </div>
 
-          <nav className="cl-nav">
-            <div className="cl-nav-section">Main</div>
-            {TABS.map(tab => (
+          {/* Navigation */}
+          <nav className="flex-1 px-3">
+            <div className="text-[10px] tracking-wider uppercase text-white/25 font-semibold px-3 mb-2 mt-5">Main</div>
+            {TABS.map((tab) => (
               <div
                 key={tab.id}
-                className={`cl-nav-item ${tab.id === "payments" ? "active" : ""}`}
-                onClick={() => tab.id !== "payments" && navigate(`/admin/${tab.id === "overview" ? "" : tab.id}`)}
+                onClick={() => (tab.id === "payments" ? navigate("/admin/payments") : setActiveTab(tab.id))}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium mb-0.5 transition-all cursor-pointer ${
+                  activeTab === tab.id
+                    ? "bg-sky-500/15 text-white border border-sky-500/20"
+                    : "text-white/45 hover:bg-white/5 hover:text-white/85"
+                }`}
               >
-                <span className="cl-nav-icon">{tab.icon}</span>
+                <span className="text-base w-5 text-center">{tab.icon}</span>
                 {tab.label}
-                {tab.badge && <span className="cl-nav-badge">{tab.badge}</span>}
+                {tab.badge && (
+                  <span className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                    tab.badgeGreen ? "bg-green-500/15 text-green-400 border border-green-500/20" : "bg-red-500/15 text-red-400 border border-red-500/20"
+                  }`}>
+                    {tab.badge}
+                  </span>
+                )}
               </div>
             ))}
-
-            <div className="cl-nav-section">System</div>
-            <div className="cl-nav-item"><span className="cl-nav-icon">⚙️</span> Settings</div>
-            <div className="cl-nav-item"><span className="cl-nav-icon">📊</span> Reports</div>
+            <div className="text-[10px] tracking-wider uppercase text-white/25 font-semibold px-3 mt-6 mb-2">System</div>
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/45 hover:bg-white/5 hover:text-white/85 transition-all cursor-pointer">
+              <span className="text-base w-5 text-center">⚙️</span> Settings
+            </div>
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/45 hover:bg-white/5 hover:text-white/85 transition-all cursor-pointer">
+              <span className="text-base w-5 text-center">📊</span> Reports
+            </div>
           </nav>
 
-          <div className="cl-sidebar-footer">
-            <div className="cl-admin-user">
-              <div className="cl-admin-avatar">A</div>
-              <div className="cl-admin-info">
-                <div className="cl-admin-name">Admin</div>
-                <div className="cl-admin-role">Super Administrator</div>
+          {/* Sidebar Footer (Tailwind only) */}
+          <div className="px-6 pt-4 pb-6 border-t border-white/10 mt-auto">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold">A</div>
+              <div className="flex-1">
+                <div className="text-sm font-semibold text-gray-100">Admin</div>
+                <div className="text-xs text-gray-400">Super Administrator</div>
               </div>
+              <button
+                onClick={() => {
+                  if (window.confirm("Are you sure you want to logout?")) navigate("/login");
+                }}
+                title="Logout"
+                className="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center text-sm transition-all duration-200 hover:bg-red-500/20 hover:border-red-500/40 flex-shrink-0"
+              >
+                🚪
+              </button>
             </div>
           </div>
         </aside>
