@@ -768,13 +768,26 @@ function AdminDashboard() {
             </div>
           </nav>
 
-          <div className="cl-sidebar-footer">
-            <div className="cl-admin-user">
-              <div className="cl-admin-avatar">A</div>
-              <div className="cl-admin-info">
-                <div className="cl-admin-name">Admin</div>
-                <div className="cl-admin-role">Super Administrator</div>
+          <div className="p-4 border-t border-gray-200">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold">
+                A
               </div>
+              <div className="flex-1">
+                <div className="text-sm font-semibold text-gray-900">Admin</div>
+                <div className="text-xs text-gray-500">Super Administrator</div>
+              </div>
+              <button
+                onClick={() => {
+                  if (window.confirm("Are you sure you want to logout?")) {
+                    navigate("/login");
+                  }
+                }}
+                title="Logout"
+                className="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center text-sm transition-all duration-200 hover:bg-red-500/20 hover:border-red-500/40 flex-shrink-0"
+              >
+                🚪
+              </button>
             </div>
           </div>
         </aside>
