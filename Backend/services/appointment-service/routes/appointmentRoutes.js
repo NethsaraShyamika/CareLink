@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { protect, patientOnly } = require("../middleware/authMiddleware");
+const { protect, patientOnly, doctorOnly, patientOrDoctor } = require("../middleware/authMiddleware");
 
 const {
   bookAppointment,
@@ -11,6 +11,7 @@ const {
   rescheduleAppointment,
   trackAppointmentStatus,
   confirmAppointment,
+  confirmPayment,
   completeAppointment,
   searchDoctors,
 } = require("../controllers/appointmentController");
@@ -28,9 +29,11 @@ router.get("/appointments/doctor/:doctorId", getDoctorAppointments);
 router.post("/appointments", protect, patientOnly, bookAppointment);
 router.get("/appointments/:id", getAppointmentById);
 router.get("/appointments/:id/status", trackAppointmentStatus);
-router.put("/appointments/:id/cancel", cancelAppointment);
-router.put("/appointments/:id/reschedule", rescheduleAppointment);
-router.put("/appointments/:id/confirm", confirmAppointment);
-router.put("/appointments/:id/complete", completeAppointment);
+router.put("/appointments/:id/cancel", protect, patientOrDoctor, cancelAppointment);
+router.put("/appointments/:id/reschedule", protect, patientOnly, rescheduleAppointment);
+router.put("/appointments/:id/confirm", protect, doctorOnly, confirmAppointment);
+router.put("/appointments/:id/complete", protect, doctorOnly, completeAppointment);
+// payment confirmation by patient (after successful payment)
+router.put("/appointments/:id/confirm-payment", protect, patientOnly, confirmPayment);
 
 module.exports = router;
