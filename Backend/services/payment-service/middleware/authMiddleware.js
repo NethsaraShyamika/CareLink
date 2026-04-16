@@ -10,7 +10,7 @@ export function verifyToken(req, res, next) {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'icomputers');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'mysecretkey123');
     req.user = decoded; // { id, role, email, ... }
     next();
   } catch (err) {
