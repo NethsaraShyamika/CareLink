@@ -250,6 +250,14 @@ export default function SymptomHistory({ token: propToken, onNewCheck }) {
   const navigate = useNavigate();
   const [chatbotOpen, setChatbotOpen] = useState(false);
 
+  const handleNewCheck = () => {
+    if (typeof onNewCheck === "function") {
+      onNewCheck();
+    } else {
+      navigate("/patient/symptom-check");
+    }
+  };
+
   useEffect(() => {
     fetchHistory();
   }, []);
@@ -482,7 +490,7 @@ export default function SymptomHistory({ token: propToken, onNewCheck }) {
             <h2 style={styles.headerTitle}>Symptom History</h2>
             <p style={styles.headerSub}>Your previous AI health assessments</p>
           </div>
-          <button onClick={onNewCheck} style={styles.newCheckBtn}>
+          <button onClick={handleNewCheck} style={styles.newCheckBtn}>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <path d="M7 2V12M2 7H12" stroke="white" strokeWidth="2" strokeLinecap="round"/>
             </svg>
@@ -577,7 +585,7 @@ export default function SymptomHistory({ token: propToken, onNewCheck }) {
           </div>
           <p style={styles.emptyTitle}>No checks yet</p>
           <p style={styles.emptyDesc}>Start your first AI symptom check to see your history here</p>
-          <button onClick={onNewCheck} style={styles.emptyBtn}>Start First Check →</button>
+          <button onClick={handleNewCheck} style={styles.emptyBtn}>Start First Check </button>
         </div>
       )}
 
