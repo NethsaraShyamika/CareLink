@@ -8,45 +8,48 @@ import {
     updateProfile,
     uploadReport,
     getReports,
-    getPrescriptions
+    getPrescriptions,
+    getAllPatients
 } from '../controllers/patientController.js';
 
 const router = express.Router();
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/');
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + '-' + file.originalname);
+// ─── Local admin check (no cross-service import needed) ───────────────────────
+const requireAdmin = (req, res, next) => {
+    if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Admin access required' });
     }
+    next();
+};
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => { cb(null, 'uploads/'); },
+    filename:    (req, file, cb) => { cb(null, Date.now() + '-' + file.originalname); }
 });
 
 const fileFilter = (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|pdf|doc|docx/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    if (extname) {
-        return cb(null, true);
-    }
-    cb(new Error('Only images, PDFs and documents allowed'));
+    const allowed = /jpeg|jpg|png|pdf|doc|docx/;
+    allowed.test(path.extname(file.originalname).toLowerCase())
+        ? cb(null, true)
+        : cb(new Error('Only images, PDFs and documents allowed'));
 };
 
-const upload = multer({
-    storage: storage,
-    fileFilter: fileFilter,
-    limits: { fileSize: 5 * 1024 * 1024 }
-});
+const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
 
 // Profile routes
-router.get('/profile',    verifyToken, getProfile);
-router.post('/profile',   verifyToken, createProfile);
-router.put('/profile',    verifyToken, updateProfile);
+router.get('/profile',            verifyToken,              getProfile);
+router.post('/profile',           verifyToken,              createProfile);
+router.put('/profile',            verifyToken,              updateProfile);
 
 // Report routes
-router.post('/upload-report', verifyToken, upload.single('report'), uploadReport);
-router.get('/reports',        verifyToken, getReports);
+router.post('/upload-report',     verifyToken, upload.single('report'), uploadReport);
+router.get('/reports',            verifyToken,              getReports);
 
 // Prescription routes
-router.get('/prescriptions', verifyToken, getPrescriptions);
+router.get('/prescriptions',      verifyToken,              getPrescriptions);
+
+// ✅ Admin: get all patients — GET not POST
+router.get('/all',                verifyToken, requireAdmin, getAllPatients);
 
 export default router;

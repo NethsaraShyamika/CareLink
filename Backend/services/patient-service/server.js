@@ -80,18 +80,26 @@ app.get('/health', (req, res) => {
 
 const PORT = 5002;
 
-// Use MONGODB_URI from .env
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://patient_user:1234@cluster0.sdj8clh.mongodb.net/carelink_patients?retryWrites=true&w=majority&appName=Cluster0';
+
+// Use only MONGODB_URI from .env for safety
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) {
+    console.error('❌ MONGODB_URI is not set in environment variables.');
+    process.exit(1);
+}
 
 mongoose.connect(MONGODB_URI)
-  .then(() => {
-    console.log('✅ Connected to MongoDB');
-    console.log('🔐 JWT_SECRET:', JWT_SECRET);
-    app.listen(PORT, () => {
-      console.log(`🚀 Patient service running on http://localhost:${PORT}`);
-      console.log(`📋 Get token: http://localhost:${PORT}/dev/token/patient123`);
+    .then(() => {
+        console.log('✅ Connected to MongoDB');
+        console.log('🔐 JWT_SECRET:', JWT_SECRET);
+        app.listen(PORT, () => {
+            console.log(`🚀 Patient service running on http://localhost:${PORT}`);
+            console.log(`📋 Get token: http://localhost:${PORT}/dev/token/patient123`);
+        });
+    })
+    .catch(err => {
+        console.error('❌ MongoDB connection error:', err);
+        process.exit(1);
     });
-  })
-  .catch(err => console.error('❌ MongoDB connection error:', err));
 
 export { JWT_SECRET };

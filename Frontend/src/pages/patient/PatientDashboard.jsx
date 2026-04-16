@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
+import { FadeIn, ScaleIn, SlideInRight, SlideInLeft } from "./DashboardAnimations.jsx";
 import { useUser } from "../../contextUser.jsx";
+import { deleteOwnAccount } from "../../utils/api.js";
 import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -27,6 +29,14 @@ import {
 const PatientDashboard = () => {
   const { user, logout } = useUser();
   const [showProfile, setShowProfile] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [editData, setEditData] = useState({
+    firstName: user?.firstName || "",
+    lastName: user?.lastName || "",
+    email: user?.email || "",
+    phone: user?.phone || ""
+  });
   const profileRef = useRef();
   const navigate = useNavigate();
   const [chatbotOpen, setChatbotOpen] = useState(false);
@@ -51,12 +61,49 @@ const PatientDashboard = () => {
     navigate("/login");
   };
 
-  const initials = `${user?.firstName?.[0] || "?"}${user?.lastName?.[0] || ""}`;
+  // const initials = `${user?.firstName?.[0] || "?"}${user?.lastName?.[0] || ""}`;
+
+  // Handle edit profile open
+  const openEditModal = () => {
+    setEditData({
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
+      email: user?.email || "",
+      phone: user?.phone || ""
+    });
+    setEditModalOpen(true);
+  };
+
+  // Handle edit profile save
+  const { login } = useUser();
+  const handleEditSave = (e) => {
+    e.preventDefault();
+    // Update user context (simulate backend update)
+    login({ ...user, ...editData });
+    setEditModalOpen(false);
+    setShowProfile(false);
+  };
+
+  // Handle delete account
+  const handleDeleteAccount = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("No token found");
+      await deleteOwnAccount(token);
+    } catch (err) {
+      alert("Failed to delete account. Please try again.");
+      return;
+    }
+    setDeleteModalOpen(false);
+    setShowProfile(false);
+    logout();
+    navigate("/login");
+  };
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] flex relative">
+    <FadeIn className="min-h-screen bg-[#F9FAFB] flex relative">
       {/* Sidebar */}
-      <aside className="w-64 bg-[#FFFFFF] border-[#E5E7EB] border-r flex flex-col min-h-screen">
+      <SlideInLeft className="w-64 bg-[#FFFFFF] border-[#E5E7EB] border-r flex flex-col min-h-screen">
         <div className="flex items-center gap-2 px-6 py-6 border-b border-[#E5E7EB]">
           <div className="bg-[#14B8A6] rounded-full w-10 h-10 flex items-center justify-center text-white text-2xl font-bold">
             +
@@ -204,7 +251,7 @@ const PatientDashboard = () => {
         {/* Sidebar user card */}
         <div className="mt-auto px-6 py-4 bg-[#CCFBF1] rounded-lg m-4 flex items-center gap-3">
           <div className="bg-[#0D9488] text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">
-            {initials}
+            <User size={28} />
           </div>
           <div>
             <div className="font-semibold text-[#0D9488]">
@@ -213,11 +260,11 @@ const PatientDashboard = () => {
             <div className="text-xs text-[#14B8A6]">Patient</div>
           </div>
         </div>
-      </aside>
+      </SlideInLeft>
 
       {/* Main Content */}
       <main className="flex-1 p-8 overflow-y-auto">
-        <div className="flex flex-col gap-6 max-w-6xl mx-auto">
+        <FadeIn className="flex flex-col gap-6 max-w-6xl mx-auto">
           {/* Top bar */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
             <div>
@@ -255,7 +302,7 @@ const PatientDashboard = () => {
                 onClick={() => setShowProfile((v) => !v)}
                 aria-label="Profile"
               >
-                {initials}
+                <User size={24} />
               </button>
 
               {/* Profile dropdown */}
@@ -276,7 +323,7 @@ const PatientDashboard = () => {
                   {/* Header */}
                   <div className="bg-linear-to-r from-[#14B8A6] to-[#2563EB] px-5 py-4 flex items-center gap-3">
                     <div className="bg-white text-[#0D9488] rounded-full w-14 h-14 flex items-center justify-center text-xl font-bold shadow">
-                      {initials}
+                      <User size={36} />
                     </div>
                     <div>
                       <div className="font-bold text-white text-lg">
@@ -366,15 +413,135 @@ const PatientDashboard = () => {
                   <div className="px-5 py-3 flex flex-col gap-2">
                     <button
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#374151] hover:bg-[#F3F4F6] rounded-lg transition"
-                      onClick={() => {
-                        setShowProfile(false);
-                      }}
+                      onClick={openEditModal}
                     >
                       <span className="material-icons text-[#14B8A6] text-base">
                         manage_accounts
                       </span>
                       Edit Profile
                     </button>
+
+                    {/* Delete Account Button */}
+                    <button
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#DC2626] hover:bg-[#FEE2E2] rounded-lg transition font-semibold"
+                      onClick={() => setDeleteModalOpen(true)}
+                    >
+                      <span className="material-icons text-[#DC2626] text-base">
+                        delete
+                      </span>
+                      Delete Account
+                    </button>
+
+                    {/* Edit Profile Modal (moved outside button for valid JSX) */}
+                    {editModalOpen && (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                        <form
+                          className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md relative"
+                          onSubmit={handleEditSave}
+                        >
+                          <button
+                            type="button"
+                            className="absolute top-3 right-3 text-gray-400 hover:text-[#0D9488] text-2xl"
+                            onClick={() => setEditModalOpen(false)}
+                            aria-label="Close edit modal"
+                          >
+                            &times;
+                          </button>
+                          <h2 className="text-xl font-bold mb-6 text-[#0D9488]">Edit Profile</h2>
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700">First Name</label>
+                              <input
+                                className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#14B8A6]"
+                                type="text"
+                                value={editData.firstName}
+                                onChange={e => setEditData({ ...editData, firstName: e.target.value })}
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700">Last Name</label>
+                              <input
+                                className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#14B8A6]"
+                                type="text"
+                                value={editData.lastName}
+                                onChange={e => setEditData({ ...editData, lastName: e.target.value })}
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700">Email</label>
+                              <input
+                                className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#14B8A6]"
+                                type="email"
+                                value={editData.email}
+                                onChange={e => setEditData({ ...editData, email: e.target.value })}
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700">Phone</label>
+                              <input
+                                className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#14B8A6]"
+                                type="text"
+                                value={editData.phone}
+                                onChange={e => setEditData({ ...editData, phone: e.target.value })}
+                                required
+                              />
+                            </div>
+                          </div>
+                          <div className="flex gap-3 mt-8">
+                            <button
+                              type="button"
+                              className="flex-1 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100"
+                              onClick={() => setEditModalOpen(false)}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="submit"
+                              className="flex-1 py-2 rounded-lg bg-[#14B8A6] text-white font-semibold hover:bg-[#0D9488]"
+                            >
+                              Save
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    )}
+
+                    {/* Delete Account Modal */}
+                    {deleteModalOpen && (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                        <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md relative">
+                          <button
+                            type="button"
+                            className="absolute top-3 right-3 text-gray-400 hover:text-[#DC2626] text-2xl"
+                            onClick={() => setDeleteModalOpen(false)}
+                            aria-label="Close delete modal"
+                          >
+                            &times;
+                          </button>
+                          <h2 className="text-xl font-bold mb-6 text-[#DC2626]">Delete Account</h2>
+                          <p className="mb-6 text-[#374151]">Are you sure you want to delete your account? This action cannot be undone.</p>
+                          <div className="flex gap-3 mt-8">
+                            <button
+                              type="button"
+                              className="flex-1 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100"
+                              onClick={() => setDeleteModalOpen(false)}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              className="flex-1 py-2 rounded-lg bg-[#DC2626] text-white font-semibold hover:bg-[#B91C1C]"
+                              onClick={handleDeleteAccount}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     <button
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#EF4444] hover:bg-[#FEF2F2] rounded-lg transition font-semibold"
@@ -393,56 +560,73 @@ const PatientDashboard = () => {
 
           {/* Top Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-xl shadow p-4 flex flex-col items-start">
+            <ScaleIn>
+              <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-xl shadow p-4 flex flex-col items-start">
               <div className="text-xs text-[#9CA3AF]">
                 Upcoming appointments
               </div>
               <div className="text-2xl font-bold text-[#14B8A6]">3</div>
               <div className="text-xs text-[#14B8A6] mt-1">Next: Apr 17</div>
-            </div>
-            <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-xl shadow p-4 flex flex-col items-start">
+              </div>
+            </ScaleIn>
+            <ScaleIn delay={0.1}>
+              <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-xl shadow p-4 flex flex-col items-start">
               <div className="text-xs text-[#9CA3AF]">Active prescriptions</div>
               <div className="text-2xl font-bold text-[#22C55E]">5</div>
               <div className="text-xs text-[#22C55E] mt-1">2 refills due</div>
-            </div>
-            <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-xl shadow p-4 flex flex-col items-start">
+              </div>
+            </ScaleIn>
+            <ScaleIn delay={0.2}>
+              <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-xl shadow p-4 flex flex-col items-start">
               <div className="text-xs text-[#9CA3AF]">Lab results pending</div>
               <div className="text-2xl font-bold text-[#F59E0B]">2</div>
               <div className="text-xs text-[#EF4444] mt-1">1 needs review</div>
-            </div>
-            <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-xl shadow p-4 flex flex-col items-start">
+              </div>
+            </ScaleIn>
+            <ScaleIn delay={0.3}>
+              <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-xl shadow p-4 flex flex-col items-start">
               <div className="text-xs text-[#9CA3AF]">Unread messages</div>
               <div className="text-2xl font-bold text-[#14B8A6]">1</div>
               <div className="text-xs text-[#14B8A6] mt-1">From Dr. Perera</div>
-            </div>
+              </div>
+            </ScaleIn>
           </div>
 
           {/* Quick Actions */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <button className="bg-[#14B8A6] text-white rounded-xl shadow p-4 flex flex-col items-center hover:bg-[#0D9488]">
+            <SlideInRight>
+              <button className="bg-[#14B8A6] text-white rounded-xl shadow p-4 flex flex-col items-center hover:bg-[#0D9488]">
               <span className="material-icons text-white mb-2">
                 event_available
               </span>
               <span className="font-medium">Book appointment</span>
-            </button>
-            <button className="bg-[#14B8A6] text-white rounded-xl shadow p-4 flex flex-col items-center hover:bg-[#0D9488]">
+              </button>
+            </SlideInRight>
+            <SlideInRight delay={0.1}>
+              <button className="bg-[#14B8A6] text-white rounded-xl shadow p-4 flex flex-col items-center hover:bg-[#0D9488]">
               <span className="material-icons text-white mb-2">medication</span>
               <span className="font-medium">Refill prescription</span>
-            </button>
-            <button className="bg-[#14B8A6] text-white rounded-xl shadow p-4 flex flex-col items-center hover:bg-[#0D9488]">
+              </button>
+            </SlideInRight>
+            <SlideInRight delay={0.2}>
+              <button className="bg-[#14B8A6] text-white rounded-xl shadow p-4 flex flex-col items-center hover:bg-[#0D9488]">
               <span className="material-icons text-white mb-2">science</span>
               <span className="font-medium">View lab results</span>
-            </button>
-            <button className="bg-[#14B8A6] text-white rounded-xl shadow p-4 flex flex-col items-center hover:bg-[#0D9488]">
+              </button>
+            </SlideInRight>
+            <SlideInRight delay={0.3}>
+              <button className="bg-[#14B8A6] text-white rounded-xl shadow p-4 flex flex-col items-center hover:bg-[#0D9488]">
               <span className="material-icons text-white mb-2">mail</span>
               <span className="font-medium">Message doctor</span>
-            </button>
+              </button>
+            </SlideInRight>
           </div>
 
           {/* Main Dashboard Sections */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2 flex flex-col gap-6">
-              <section className="bg-[#FFFFFF] rounded-xl shadow p-6 border border-[#E5E7EB]">
+            <FadeIn className="md:col-span-2 flex flex-col gap-6">
+              <ScaleIn>
+                <section className="bg-[#FFFFFF] rounded-xl shadow p-6 border border-[#E5E7EB]">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="font-semibold text-lg text-[#111827]">
                     Upcoming appointments
@@ -502,9 +686,11 @@ const PatientDashboard = () => {
                     </div>
                   </li>
                 </ul>
-              </section>
+                </section>
+              </ScaleIn>
 
-              <section className="bg-[#FFFFFF] rounded-xl shadow p-6 border border-[#E5E7EB]">
+              <ScaleIn delay={0.1}>
+                <section className="bg-[#FFFFFF] rounded-xl shadow p-6 border border-[#E5E7EB]">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="font-semibold text-lg text-[#111827]">
                     Recent lab results
@@ -562,11 +748,13 @@ const PatientDashboard = () => {
                     </span>
                   </li>
                 </ul>
-              </section>
-            </div>
+                </section>
+              </ScaleIn>
+            </FadeIn>
 
-            <div className="flex flex-col gap-6">
-              <section className="bg-[#FFFFFF] rounded-xl shadow p-6 border border-[#E5E7EB]">
+            <FadeIn className="flex flex-col gap-6">
+              <ScaleIn>
+                <section className="bg-[#FFFFFF] rounded-xl shadow p-6 border border-[#E5E7EB]">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="font-semibold text-lg text-[#111827]">
                     Vitals overview
@@ -602,9 +790,11 @@ const PatientDashboard = () => {
                     <div className="font-bold text-lg text-[#111827]">98%</div>
                   </div>
                 </div>
-              </section>
+                </section>
+              </ScaleIn>
 
-              <section className="bg-[#FFFFFF] rounded-xl shadow p-6 border border-[#E5E7EB]">
+              <ScaleIn delay={0.1}>
+                <section className="bg-[#FFFFFF] rounded-xl shadow p-6 border border-[#E5E7EB]">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="font-semibold text-lg text-[#111827]">
                     Active prescriptions
@@ -642,9 +832,11 @@ const PatientDashboard = () => {
                     </span>
                   </li>
                 </ul>
-              </section>
+                </section>
+              </ScaleIn>
 
-              <section className="bg-[#FFFFFF] rounded-xl shadow p-6 border border-[#E5E7EB]">
+              <ScaleIn delay={0.2}>
+                <section className="bg-[#FFFFFF] rounded-xl shadow p-6 border border-[#E5E7EB]">
                 <div className="font-semibold text-lg text-[#111827] mb-2">
                   Visits this year
                 </div>
@@ -677,12 +869,13 @@ const PatientDashboard = () => {
                   <span>A</span>
                   <span>M</span>
                 </div>
-              </section>
-            </div>
+                </section>
+              </ScaleIn>
+            </FadeIn>
           </div>
-        </div>
+        </FadeIn>
       </main>
-    </div>
+    </FadeIn>
   );
 };
 
