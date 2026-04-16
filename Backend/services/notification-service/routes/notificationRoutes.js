@@ -4,7 +4,8 @@ import {
     consultationCompleted,
     appointmentCancelled,
     getAllNotifications,
-    getNotificationsByEmail
+    getNotificationsByEmail,
+    sendReminder
 } from "../controllers/notificationController.js";
 
 const router = express.Router();

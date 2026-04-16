@@ -231,16 +231,37 @@ export const getNotificationsByEmail = async (req, res) => {
 
 export const sendReminder = async (req, res) => {
   try {
-    const { appointmentId, date, timeSlot } = req.body;
+    const {
+      patientEmail,
+      patientName,
+      doctorName,
+      appointmentId,
+      date,
+      time
+    } = req.body;
 
-    const message = `⏰ Reminder: Appointment ${appointmentId} is at ${timeSlot}`;
+    if (!patientEmail || !patientName || !appointmentId) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
 
-    // send email / WhatsApp here
-    console.log(message);
+    await sendEmail(
+      patientEmail,
+      patientName,
+      "⏰ Appointment Reminder",
+      `
+        <p>Hi ${patientName},</p>
+        <p>This is a reminder for your appointment.</p>
+        <p><strong>Doctor:</strong> ${doctorName}</p>
+        <p><strong>Date:</strong> ${date}</p>
+        <p><strong>Time:</strong> ${time}</p>
+        <p>Please be ready on time.</p>
+      `
+    );
 
-    return res.json({ message: "Reminder sent" });
+    return res.status(200).json({ message: "Reminder sent" });
 
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
+  } catch (error) {
+    console.error("Reminder error:", error);
+    return res.status(500).json({ error: error.message });
   }
 };
