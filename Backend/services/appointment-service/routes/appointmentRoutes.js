@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const { protect, patientOnly } = require("../middleware/authMiddleware");
 
 const {
   bookAppointment,
@@ -24,7 +25,7 @@ router.get("/doctors/search", searchDoctors);
 router.get("/appointments/patient/:patientId", getPatientAppointments);
 router.get("/appointments/doctor/:doctorId", getDoctorAppointments);
 
-router.post("/appointments", bookAppointment);
+router.post("/appointments", protect, patientOnly, bookAppointment);
 router.get("/appointments/:id", getAppointmentById);
 router.get("/appointments/:id/status", trackAppointmentStatus);
 router.put("/appointments/:id/cancel", cancelAppointment);
