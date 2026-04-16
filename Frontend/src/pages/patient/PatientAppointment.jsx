@@ -37,6 +37,7 @@ const API_BASE = RAW_API.replace(/\/$/, "") + (RAW_API.endsWith("/api") ? "" : "
 // ─── Status config ──────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
   pending:     { color: "#F59E0B", bg: "#FEF3C7", label: "Pending",     icon: AlertCircle },
+  accepted:    { color: "#06B6D4", bg: "#E0F2FE", label: "Accepted",    icon: Clock },
   confirmed:   { color: "#22C55E", bg: "#DCFCE7", label: "Confirmed",   icon: CheckCircle },
   cancelled:   { color: "#EF4444", bg: "#FEE2E2", label: "Cancelled",   icon: XCircle },
   completed:   { color: "#3B82F6", bg: "#EFF6FF", label: "Completed",   icon: CheckCircle },
@@ -340,16 +341,27 @@ const BookModal = ({ onClose, onBook, patientId, token }) => {
 };
 
 // ─── Pay Modal ───────────────────────────────────────────────────────────────
-const PayModal = ({ appointment, onClose }) => {
+const PayModal = ({ appointment, onClose, token, onPaid }) => {
   const [method, setMethod] = useState("card");
   const [paying, setPaying] = useState(false);
   const [paid, setPaid] = useState(false);
+  const [error, setError] = useState("");
 
   const handlePay = async () => {
     setPaying(true);
-    await new Promise(r => setTimeout(r, 1800));
-    setPaying(false);
-    setPaid(true);
+    setError("");
+    try {
+      // Call appointment-service to mark payment/confirm
+      await axios.put(`${API_BASE}/appointments/${appointment._id}/confirm-payment`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setPaid(true);
+      if (onPaid) onPaid();
+    } catch (e) {
+      setError(e.response?.data?.message || "Payment failed");
+    } finally {
+      setPaying(false);
+    }
   };
 
   return (
@@ -502,9 +514,9 @@ const AppointmentCard = ({ appt, onCancel, onReschedule, onPay }) => {
   }, []);
 
   const dateStr = new Date(appt.date).toLocaleDateString("en-US", { weekday: "short", year: "numeric", month: "short", day: "numeric" });
-  const canPay = appt.status === "confirmed" || appt.status === "pending";
-  const canCancel = appt.status === "pending" || appt.status === "confirmed";
-  const canReschedule = appt.status === "pending" || appt.status === "confirmed";
+  const canPay = appt.status === "accepted"; // only after doctor accepts
+const canCancel = ["pending", "rescheduled", "accepted"].includes(appt.status);
+const canReschedule = ["pending", "rescheduled"].includes(appt.status);
 
   return (
     <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm hover:shadow-md transition-shadow p-5 relative group">
@@ -948,6 +960,8 @@ const PatientAppointment = () => {
         <PayModal
           appointment={payTarget}
           onClose={() => setPayTarget(null)}
+          token={token}
+          onPaid={fetchAppointments}
         />
       )}
       {rescheduleTarget && (
