@@ -35,7 +35,7 @@ router.put("/appointments/:id/reschedule", protect, patientOnly, rescheduleAppoi
 
 router.put("/appointments/:id/confirm", protect, doctorOnly, confirmAppointment);
 
-router.put("/appointments/:id/confirm-payment", protect, patientOnly, confirmPayment);
+router.put("/appointments/:id/confirm-payment", confirmPayment);
 
 router.put("/appointments/:id/complete", protect, doctorOnly, completeAppointment);
 

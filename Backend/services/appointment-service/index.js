@@ -13,8 +13,19 @@ connectDB();
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "http://localhost:5174"], // Allow frontend origins
+    credentials: true, // Allow credentials
+  })
+);
 app.use(express.json());
+
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
 
 // Routes
 import appointmentRoutes from "./routes/appointmentRoutes.js";

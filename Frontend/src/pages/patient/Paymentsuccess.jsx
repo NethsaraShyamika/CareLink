@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
  */
 
 const API = "http://localhost:3005/api";
+const APPOINTMENT_API = "http://localhost:5002/api";
 const token = () => localStorage.getItem("token");
 
 const css = `
@@ -237,51 +238,71 @@ export default function PaymentSuccess({ onGoHome, onViewHistory }) {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const paymentIntentId = params.get("payment_intent");
     const sessionId = params.get("session_id"); // Stripe Checkout appends this
 
-    if (paymentIntentId) {
-      confirmPayment(paymentIntentId);
-    } else if (sessionId) {
-      // For checkout sessions, just mark as confirmed visually
-      // Webhook handles actual DB update
-      setStatus("confirmed");
-      setPaymentData({ sessionId });
+    if (sessionId) {
+      confirmPayment(sessionId);
     } else {
-      // No Stripe params — arrived directly (e.g. dev navigation)
-      setStatus("confirmed");
-      setPaymentData({});
+      console.error("Missing Stripe session_id on success redirect.");
+      setStatus("error");
     }
   }, []);
 
-  const confirmPayment = async (paymentIntentId) => {
+  const confirmPayment = async (sessionId) => {
     try {
-      const res = await fetch(`${API}/payments/stripe/confirm`, {
+      console.log("Confirming payment for session:", sessionId);
+      console.log("Token:", token());
+
+      const confirmPaymentRes = await fetch(`${API}/payments/stripe/confirm`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token()}`,
         },
         credentials: "include",
-        body: JSON.stringify({ paymentIntentId }),
+        body: JSON.stringify({ sessionId }),
       });
-      const json = await res.json();
-      if (json.success) {
-        setPaymentData(json.payment);
+      const confirmPaymentJson = await confirmPaymentRes.json();
+      console.log("Confirm payment response:", confirmPaymentJson);
+
+      if (!confirmPaymentRes.ok || !confirmPaymentJson.success) {
+        console.error("Failed to confirm stripe payment:", confirmPaymentJson.message);
+        setStatus("error");
+        return;
+      }
+
+      const payment = confirmPaymentJson.payment;
+      setPaymentData(payment);
+      console.log("Payment data:", payment);
+
+      // Now confirm the appointment
+      console.log("Confirming appointment:", payment.appointmentId);
+      const confirmRes = await fetch(`${APPOINTMENT_API}/appointments/${payment.appointmentId}/confirm-payment`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token()}`,
+        },
+        credentials: "include",
+      });
+      const confirmJson = await confirmRes.json();
+      console.log("Confirm appointment response:", confirmJson);
+
+      if (confirmRes.ok && confirmJson.message === "Payment confirmed") {
         setStatus("confirmed");
       } else {
-        setStatus("confirmed"); // still show success — webhook will update DB
-        setPaymentData({});
+        console.error("Failed to confirm appointment:", confirmJson.message);
+        setStatus("error");
       }
-    } catch {
-      setStatus("confirmed");
-      setPaymentData({});
+    } catch (err) {
+      console.error("Confirm payment error:", err);
+      setStatus("error");
     }
   };
 
   const goHome = () => {
     if (onGoHome) onGoHome();
-    else window.location.href = "/";
+    else window.location.href = "/patient/dashboard";
   };
 
   const viewHistory = () => {
@@ -300,6 +321,19 @@ export default function PaymentSuccess({ onGoHome, onViewHistory }) {
               <div className="ps-loader" />
               <p style={{ color: "#64748b", fontSize: "0.88rem" }}>Confirming your payment…</p>
             </div>
+          ) : status === "error" ? (
+            <>
+              <div className="ps-icon-wrap" style={{ background: "linear-gradient(135deg, #fecaca, #fca5a5)", color: "#dc2626" }}>⚠</div>
+              <h1>Payment Issue</h1>
+              <p className="sub">
+                Your payment was processed, but we couldn't confirm your appointment. Please contact support.
+              </p>
+              <div className="ps-actions">
+                <button className="ps-btn-primary" onClick={goHome}>
+                  Go to Dashboard
+                </button>
+              </div>
+            </>
           ) : (
             <>
               <div className="ps-icon-wrap">✓</div>
