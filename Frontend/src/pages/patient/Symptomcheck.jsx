@@ -811,9 +811,7 @@ export default function SymptomCheck({ token: propToken, onCheckComplete }) {
               </button>
 
               <button
-                onClick={() =>
-                  (window.location.href = "/patient/PatientAppointment")
-                }
+                onClick={() => navigate("/patient/appointments")}
                 style={{ ...styles.primaryBtn, height: "45px", width: "350px" }}
               >
                 Book Appointment

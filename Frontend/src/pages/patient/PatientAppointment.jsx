@@ -791,7 +791,7 @@ const PatientAppointment = () => {
   // ── Stats ───────────────────────────────────────────────────────────────────
   const stats = {
     total:     appointments.length,
-    upcoming:  appointments.filter(a => ["pending", "confirmed"].includes(a.status)).length,
+    upcoming:  appointments.filter(a => ["pending", "accepted", "confirmed"].includes(a.status)).length,
     completed: appointments.filter(a => a.status === "completed").length,
     cancelled: appointments.filter(a => a.status === "cancelled").length,
   };
@@ -865,7 +865,7 @@ const PatientAppointment = () => {
             {/* Status filters */}
             <div className="flex items-center gap-2 flex-wrap">
               <Filter size={16} className="text-[#9CA3AF]" />
-              {["all", "pending", "confirmed", "rescheduled", "completed", "cancelled"].map(s => (
+              {["all", "pending", "rescheduled", "accepted", "cancelled", "confirmed", "completed"].map(s => (
                 <button
                   key={s}
                   onClick={() => setFilterStatus(s)}

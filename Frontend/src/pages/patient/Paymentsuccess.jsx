@@ -7,36 +7,55 @@ import { useEffect, useState } from "react";
  * success_url in create-checkout must be:
  *   http://localhost:3000/payment/success
  *
- * On mount: calls POST /api/payments/stripe/confirm with paymentIntentId
- * from URL query params (Stripe appends ?payment_intent=pi_xxx automatically
- * when using PaymentIntents; for Checkout Sessions the session_id is appended).
+ * On mount: calls POST /api/payments/stripe/confirm with sessionId
+ * from URL query params (?session_id=cs_xxx).
  *
  * Usage (React Router v6):
  *   <Route path="/payment/success" element={<PaymentSuccess />} />
  */
 
-const API = "http://localhost:3005/api";
+const API            = "http://localhost:3005/api";
 const APPOINTMENT_API = "http://localhost:5002/api";
-const token = () => localStorage.getItem("token");
+const token          = () => localStorage.getItem("token");
 
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&family=DM+Sans:wght@400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600;700&display=swap');
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  /* ── ROOT ── */
   .ps-root {
     min-height: 100vh;
-    background: #f0fdf4;
+    background: #F9FAFB;
     font-family: 'DM Sans', sans-serif;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 32px 16px;
+    padding: 40px 16px;
     position: relative;
     overflow: hidden;
   }
 
-  /* Confetti dots */
+  /* ── SUBTLE BG BLOBS ── */
+  .ps-blob {
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(80px);
+    opacity: 0.25;
+  }
+  .ps-blob-1 {
+    width: 400px; height: 400px;
+    background: #CCFBF1;
+    top: -100px; right: -80px;
+  }
+  .ps-blob-2 {
+    width: 300px; height: 300px;
+    background: #EFF6FF;
+    bottom: -80px; left: -60px;
+  }
+
+  /* ── CONFETTI ── */
   .ps-confetti {
     position: fixed;
     inset: 0;
@@ -50,105 +69,141 @@ const css = `
     animation: fall linear forwards;
   }
   @keyframes fall {
-    0% { opacity: 1; transform: translateY(-20px) rotate(0deg); }
+    0%   { opacity: 1; transform: translateY(-20px) rotate(0deg); }
     100% { opacity: 0; transform: translateY(110vh) rotate(720deg); }
   }
 
+  /* ── CARD ── */
   .ps-card {
-    background: #fff;
-    border-radius: 28px;
-    padding: 56px 48px;
-    max-width: 500px;
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 24px;
+    padding: 52px 44px;
+    max-width: 480px;
     width: 100%;
     text-align: center;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
     position: relative;
     z-index: 1;
-    animation: rise 0.5s ease-out both;
+    animation: rise 0.45s ease-out both;
   }
   @keyframes rise {
-    from { opacity: 0; transform: translateY(30px) scale(0.97); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
+    from { opacity: 0; transform: translateY(24px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0)    scale(1); }
   }
 
+  /* ── ICON ── */
   .ps-icon-wrap {
-    width: 88px;
-    height: 88px;
+    width: 80px; height: 80px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #bbf7d0, #86efac);
+    background: #CCFBF1;
+    border: 2px solid #99F6E4;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 24px;
-    font-size: 2.4rem;
-    animation: pop 0.4s 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-    box-shadow: 0 8px 24px rgba(34,197,94,0.3);
+    margin: 0 auto 22px;
+    animation: pop 0.4s 0.25s cubic-bezier(0.34,1.56,0.64,1) both;
   }
+  .ps-icon-wrap svg { width: 36px; height: 36px; }
   @keyframes pop {
     from { transform: scale(0); }
     to   { transform: scale(1); }
   }
 
-  .ps-card h1 {
-    font-family: 'Bricolage Grotesque', sans-serif;
-    font-size: 1.9rem;
+  .ps-icon-error {
+    background: #FEF2F2;
+    border-color: #FECACA;
+  }
+
+  /* ── TYPOGRAPHY ── */
+  .ps-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.75rem;
     font-weight: 800;
-    color: #14532d;
+    color: #111827;
     margin-bottom: 10px;
+    letter-spacing: -0.4px;
   }
 
-  .ps-card p.sub {
-    font-size: 0.88rem;
-    color: #64748b;
-    line-height: 1.6;
-    margin-bottom: 32px;
+  .ps-sub {
+    font-size: 0.875rem;
+    color: #6B7280;
+    line-height: 1.65;
+    margin-bottom: 28px;
   }
 
-  /* Status block */
+  /* ── VERIFIED BADGE ── */
+  .ps-verified-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #CCFBF1;
+    border: 1px solid #99F6E4;
+    color: #0D9488;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 5px 13px;
+    border-radius: 20px;
+    margin-bottom: 22px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* ── STATUS BOX ── */
   .ps-status-box {
-    background: #f0fdf4;
-    border: 1.5px solid #bbf7d0;
+    background: #F9FAFB;
+    border: 1px solid #E5E7EB;
     border-radius: 14px;
-    padding: 18px 20px;
+    padding: 4px 0;
     text-align: left;
     margin-bottom: 28px;
+    overflow: hidden;
   }
 
   .ps-status-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 7px 0;
-    border-bottom: 1px solid #dcfce7;
+    padding: 11px 18px;
+    border-bottom: 1px solid #F3F4F6;
+    transition: background 0.15s;
   }
   .ps-status-row:last-child { border-bottom: none; }
+  .ps-status-row:hover { background: #F0FDFA; }
+
   .ps-status-row .k {
-    font-size: 0.75rem;
-    color: #6b7280;
+    font-size: 0.76rem;
+    color: #6B7280;
     font-weight: 500;
   }
   .ps-status-row .v {
-    font-size: 0.82rem;
-    color: #14532d;
+    font-size: 0.8rem;
+    color: #111827;
     font-weight: 600;
-    font-family: monospace;
+    font-family: 'DM Mono', 'Fira Code', monospace;
   }
 
-  .ps-verified-badge {
+  .ps-status-ok {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    background: #dcfce7;
-    border: 1px solid #86efac;
-    color: #15803d;
-    font-size: 0.72rem;
+    gap: 5px;
+    background: #DCFCE7;
+    border: 1px solid #86EFAC;
+    color: #15803D;
+    font-size: 0.75rem;
     font-weight: 700;
-    padding: 5px 12px;
+    padding: 3px 10px;
     border-radius: 20px;
-    margin-bottom: 24px;
-    letter-spacing: 0.05em;
   }
 
+  /* ── DIVIDER ── */
+  .ps-divider {
+    border: none;
+    border-top: 1px solid #E5E7EB;
+    margin: 0 0 24px;
+  }
+
+  /* ── ACTIONS ── */
   .ps-actions {
     display: flex;
     flex-direction: column;
@@ -156,61 +211,98 @@ const css = `
   }
 
   .ps-btn-primary {
-    padding: 13px;
-    background: linear-gradient(135deg, #16a34a, #15803d);
+    padding: 13px 20px;
+    background: #14B8A6;
     color: #fff;
     border: none;
-    border-radius: 11px;
+    border-radius: 12px;
     font-family: 'DM Sans', sans-serif;
-    font-size: 0.92rem;
+    font-size: 0.9rem;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 4px 14px rgba(22,163,74,0.3);
+    box-shadow: 0 4px 14px rgba(20,184,166,0.25);
   }
-  .ps-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(22,163,74,0.4); }
+  .ps-btn-primary:hover {
+    background: #0D9488;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(20,184,166,0.35);
+  }
+  .ps-btn-primary:active { transform: translateY(0); }
 
   .ps-btn-secondary {
-    padding: 12px;
-    background: #f8fafc;
-    color: #475569;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 11px;
+    padding: 12px 20px;
+    background: #F3F4F6;
+    color: #374151;
+    border: 1px solid #E5E7EB;
+    border-radius: 12px;
     font-family: 'DM Sans', sans-serif;
     font-size: 0.88rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
   }
-  .ps-btn-secondary:hover { border-color: #16a34a; color: #16a34a; background: #f0fdf4; }
+  .ps-btn-secondary:hover {
+    background: #CCFBF1;
+    border-color: #14B8A6;
+    color: #0D9488;
+  }
 
+  /* ── LOADING ── */
   .ps-loading {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 14px;
-    padding: 20px 0;
+    gap: 16px;
+    padding: 16px 0 8px;
   }
-  .ps-loader {
-    width: 36px; height: 36px;
-    border: 3px solid #dcfce7;
-    border-top-color: #16a34a;
+
+  .ps-loader-ring {
+    width: 44px; height: 44px;
+    border: 3px solid #E5E7EB;
+    border-top-color: #14B8A6;
     border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+    animation: spin 0.75s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  .ps-loading p {
+    font-size: 0.875rem;
+    color: #6B7280;
+    font-weight: 500;
+  }
+
+  /* ── STEP DOTS ── */
+  .ps-steps {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .ps-step-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #E5E7EB;
+  }
+  .ps-step-dot.active { background: #14B8A6; }
+  .ps-step-dot.done   { background: #22C55E; }
 `;
 
-const confettiColors = ["#86efac","#34d399","#6ee7b7","#a7f3d0","#fde68a","#fca5a5","#93c5fd"];
+/* ── Confetti ── */
+const confettiColors = [
+  "#99F6E4","#14B8A6","#6EE7B7","#A7F3D0",
+  "#FDE68A","#FCA5A5","#93C5FD","#C4B5FD",
+];
 
 function Confetti() {
-  const dots = Array.from({ length: 40 }, (_, i) => ({
+  const dots = Array.from({ length: 36 }, (_, i) => ({
     id: i,
     left: `${Math.random() * 100}%`,
-    size: `${6 + Math.random() * 8}px`,
+    size: `${5 + Math.random() * 8}px`,
     color: confettiColors[Math.floor(Math.random() * confettiColors.length)],
-    delay: `${Math.random() * 1.5}s`,
-    duration: `${2 + Math.random() * 2}s`,
+    delay: `${Math.random() * 1.4}s`,
+    duration: `${2.2 + Math.random() * 2}s`,
   }));
   return (
     <div className="ps-confetti">
@@ -232,14 +324,36 @@ function Confetti() {
   );
 }
 
+/* ── Check Icon ── */
+function IconCheck() {
+  return (
+    <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="18" cy="18" r="18" fill="#14B8A6" fillOpacity="0.15"/>
+      <path d="M10 18.5L15.5 24L26 13" stroke="#0D9488" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+/* ── Warning Icon ── */
+function IconWarning() {
+  return (
+    <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="18" cy="18" r="18" fill="#EF4444" fillOpacity="0.12"/>
+      <path d="M18 11v8" stroke="#EF4444" strokeWidth="2.4" strokeLinecap="round"/>
+      <circle cx="18" cy="24.5" r="1.4" fill="#EF4444"/>
+    </svg>
+  );
+}
+
+/* ── Main Component ── */
 export default function PaymentSuccess({ onGoHome, onViewHistory }) {
-  const [status, setStatus] = useState("confirming"); // confirming | confirmed | error
+  const [status, setStatus]       = useState("confirming"); // confirming | confirmed | error
   const [paymentData, setPaymentData] = useState(null);
+  const [step, setStep]           = useState(0); // 0=payment, 1=appointment
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const sessionId = params.get("session_id"); // Stripe Checkout appends this
-
+    const params    = new URLSearchParams(window.location.search);
+    const sessionId = params.get("session_id");
     if (sessionId) {
       confirmPayment(sessionId);
     } else {
@@ -250,10 +364,9 @@ export default function PaymentSuccess({ onGoHome, onViewHistory }) {
 
   const confirmPayment = async (sessionId) => {
     try {
-      console.log("Confirming payment for session:", sessionId);
-      console.log("Token:", token());
-
-      const confirmPaymentRes = await fetch(`${API}/payments/stripe/confirm`, {
+      /* Step 1 — confirm Stripe payment */
+      setStep(0);
+      const confirmPaymentRes  = await fetch(`${API}/payments/stripe/confirm`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -263,7 +376,6 @@ export default function PaymentSuccess({ onGoHome, onViewHistory }) {
         body: JSON.stringify({ sessionId }),
       });
       const confirmPaymentJson = await confirmPaymentRes.json();
-      console.log("Confirm payment response:", confirmPaymentJson);
 
       if (!confirmPaymentRes.ok || !confirmPaymentJson.success) {
         console.error("Failed to confirm stripe payment:", confirmPaymentJson.message);
@@ -273,20 +385,21 @@ export default function PaymentSuccess({ onGoHome, onViewHistory }) {
 
       const payment = confirmPaymentJson.payment;
       setPaymentData(payment);
-      console.log("Payment data:", payment);
 
-      // Now confirm the appointment
-      console.log("Confirming appointment:", payment.appointmentId);
-      const confirmRes = await fetch(`${APPOINTMENT_API}/appointments/${payment.appointmentId}/confirm-payment`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token()}`,
-        },
-        credentials: "include",
-      });
+      /* Step 2 — confirm appointment */
+      setStep(1);
+      const confirmRes  = await fetch(
+        `${APPOINTMENT_API}/appointments/${payment.appointmentId}/confirm-payment`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token()}`,
+          },
+          credentials: "include",
+        }
+      );
       const confirmJson = await confirmRes.json();
-      console.log("Confirm appointment response:", confirmJson);
 
       if (confirmRes.ok && confirmJson.message === "Payment confirmed") {
         setStatus("confirmed");
@@ -300,50 +413,72 @@ export default function PaymentSuccess({ onGoHome, onViewHistory }) {
     }
   };
 
-  const goHome = () => {
-    if (onGoHome) onGoHome();
-    else window.location.href = "/patient/dashboard";
-  };
-
-  const viewHistory = () => {
-    if (onViewHistory) onViewHistory();
-    else window.location.href = "/payments/history";
-  };
+  const goHome     = () => onGoHome     ? onGoHome()     : (window.location.href = "/patient/dashboard");
+  const viewHistory = () => onViewHistory ? onViewHistory() : (window.location.href = "/payments/history");
 
   return (
     <>
       <style>{css}</style>
       <div className="ps-root">
-        <Confetti />
+        {/* Background blobs */}
+        <div className="ps-blob ps-blob-1" />
+        <div className="ps-blob ps-blob-2" />
+
+        {/* Confetti only on success */}
+        {status === "confirmed" && <Confetti />}
+
         <div className="ps-card">
-          {status === "confirming" ? (
+
+          {/* ── CONFIRMING ── */}
+          {status === "confirming" && (
             <div className="ps-loading">
-              <div className="ps-loader" />
-              <p style={{ color: "#64748b", fontSize: "0.88rem" }}>Confirming your payment…</p>
+              <div className="ps-loader-ring" />
+              <p>{step === 0 ? "Verifying your payment…" : "Confirming your appointment…"}</p>
+              <div className="ps-steps">
+                <div className={`ps-step-dot ${step > 0 ? "done" : "active"}`} />
+                <div className={`ps-step-dot ${step > 0 ? "active" : ""}`} />
+              </div>
             </div>
-          ) : status === "error" ? (
+          )}
+
+          {/* ── ERROR ── */}
+          {status === "error" && (
             <>
-              <div className="ps-icon-wrap" style={{ background: "linear-gradient(135deg, #fecaca, #fca5a5)", color: "#dc2626" }}>⚠</div>
-              <h1>Payment Issue</h1>
-              <p className="sub">
-                Your payment was processed, but we couldn't confirm your appointment. Please contact support.
+              <div className="ps-icon-wrap ps-icon-error">
+                <IconWarning />
+              </div>
+              <h1 className="ps-title">Something went wrong</h1>
+              <p className="ps-sub">
+                Your payment was processed but we couldn't confirm your appointment.
+                Please contact support with your payment reference.
               </p>
+              <hr className="ps-divider" />
               <div className="ps-actions">
                 <button className="ps-btn-primary" onClick={goHome}>
                   Go to Dashboard
                 </button>
               </div>
             </>
-          ) : (
+          )}
+
+          {/* ── SUCCESS ── */}
+          {status === "confirmed" && (
             <>
-              <div className="ps-icon-wrap">✓</div>
-              <h1>Payment Successful!</h1>
-              <p className="sub">
-                Your appointment has been confirmed. You'll receive a confirmation email shortly.
+              <div className="ps-icon-wrap">
+                <IconCheck />
+              </div>
+
+              <h1 className="ps-title">Payment Confirmed!</h1>
+              <p className="ps-sub">
+                Your appointment is booked and payment is complete.
+                A confirmation email is on its way to you.
               </p>
 
               <div className="ps-verified-badge">
-                <span>✓</span> Verified by Stripe
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <path d="M1.5 5.5L3.8 7.8L8.5 2.5" stroke="#0D9488" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Verified by Stripe
               </div>
 
               {paymentData && (
@@ -357,23 +492,36 @@ export default function PaymentSuccess({ onGoHome, onViewHistory }) {
                   {paymentData.gatewayOrderId && (
                     <div className="ps-status-row">
                       <span className="k">Stripe Ref</span>
-                      <span className="v">{paymentData.gatewayOrderId.slice(0, 20)}…</span>
+                      <span className="v">{paymentData.gatewayOrderId.slice(0, 22)}…</span>
                     </div>
                   )}
                   {paymentData.amount && (
                     <div className="ps-status-row">
                       <span className="k">Amount Paid</span>
-                      <span className="v">${parseFloat(paymentData.amount).toFixed(2)} USD</span>
+                      <span className="v">LKR {parseFloat(paymentData.amount).toLocaleString("en-US")}</span>
+                    </div>
+                  )}
+                  {paymentData.appointmentId && (
+                    <div className="ps-status-row">
+                      <span className="k">Appointment</span>
+                      <span className="v">#{String(paymentData.appointmentId).slice(-8).toUpperCase()}</span>
                     </div>
                   )}
                   <div className="ps-status-row">
                     <span className="k">Status</span>
-                    <span className="v" style={{ color: "#15803d" }}>Completed ✓</span>
+                    <span className="v">
+                      <span className="ps-status-ok">
+                        <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
+                          <path d="M1 4.5L3.3 6.8L8 1.5" stroke="#15803D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        Completed
+                      </span>
+                    </span>
                   </div>
                   {paymentData.sessionId && (
                     <div className="ps-status-row">
                       <span className="k">Session</span>
-                      <span className="v">{paymentData.sessionId.slice(0, 18)}…</span>
+                      <span className="v">{paymentData.sessionId.slice(0, 20)}…</span>
                     </div>
                   )}
                 </div>
@@ -389,6 +537,7 @@ export default function PaymentSuccess({ onGoHome, onViewHistory }) {
               </div>
             </>
           )}
+
         </div>
       </div>
     </>
