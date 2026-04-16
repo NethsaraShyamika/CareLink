@@ -16,7 +16,7 @@ mongoose.connect(process.env.MONGO_URI)
 
 app.use("/notification", notificationRoutes);
 
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 3006;
 app.listen(PORT, () => {
     console.log(`Notification Service running on port ${PORT}`);
 });

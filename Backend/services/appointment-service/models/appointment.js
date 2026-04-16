@@ -62,13 +62,18 @@ const appointmentSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+
+    // Reminder sent flag – moved inside the schema
+    reminderSent: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
   }
 );
 
-// ✅ Export as default
+// Export the model
 const Appointment = mongoose.model("Appointment", appointmentSchema);
-
 export default Appointment;

@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import connectDB from "./config/db.js";
+import "./jobs/reminderJob.js"; // Start the reminder job when the service starts
 
 // Load .env file
 dotenv.config();
