@@ -504,7 +504,7 @@ const PayModal = ({ appointment, onClose, token, onPaid }) => {
 };
 
 // ─── Appointment Card ─────────────────────────────────────────────────────────
-const AppointmentCard = ({ appt, onCancel, onReschedule, onPay }) => {
+const AppointmentCard = ({ appt, doctorsMap, onCancel, onReschedule, onPay }) => {
   const cfg = STATUS_CONFIG[appt.status] || STATUS_CONFIG.pending;
   const StatusIcon = cfg.icon;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -537,7 +537,9 @@ const canReschedule = ["pending", "rescheduled"].includes(appt.status);
               <Stethoscope size={16} />
             </div>
             <div>
-              <div className="font-semibold text-[#111827] text-sm">Doctor ID: {appt.doctorId.slice(-8)}</div>
+              <div className="font-semibold text-[#111827] text-sm">
+                {doctorsMap && doctorsMap[appt.doctorId] ? `Dr. ${doctorsMap[appt.doctorId]}` : `Doctor ID: ${appt.doctorId.slice(-8)}`}
+              </div>
               <div className="text-xs text-[#9CA3AF]">Appointment</div>
             </div>
           </div>
@@ -726,6 +728,7 @@ const PatientAppointment = () => {
   const navigate = useNavigate();
   const [chatbotOpen, setChatbotOpen] = useState(false);
   const [appointments, setAppointments] = useState([]);
+  const [doctorsMap, setDoctorsMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -735,6 +738,21 @@ const PatientAppointment = () => {
 
   const token = localStorage.getItem("token") || sessionStorage.getItem("token");
   const patientId = user?.id || user?._id;
+
+  const fetchAllDoctors = async () => {
+    try {
+      const DOCTOR_API = import.meta.env.VITE_DOCTOR_SERVICE_URL || "http://localhost:3002/api";
+      const DOCTOR_BASE = DOCTOR_API.replace(/\/$/, "");
+      const res = await axios.get(`${DOCTOR_BASE}/doctors`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const map = {};
+      res.data.forEach(d => { map[d._id] = `${d.firstName} ${d.lastName}`; });
+      setDoctorsMap(map);
+    } catch {
+      console.log("Failed to load doctors map");
+    }
+  };
 
   // ── Fetch appointments ──────────────────────────────────────────────────────
   const fetchAppointments = async () => {
@@ -757,7 +775,10 @@ const PatientAppointment = () => {
     }
   };
 
-  useEffect(() => { fetchAppointments(); }, [patientId]);
+  useEffect(() => { 
+    fetchAppointments(); 
+    fetchAllDoctors();
+  }, [patientId]);
 
   // ── Book ────────────────────────────────────────────────────────────────────
   const handleBook = async (form) => {
@@ -940,6 +961,7 @@ const PatientAppointment = () => {
                 <AppointmentCard
                   key={appt._id}
                   appt={appt}
+                  doctorsMap={doctorsMap}
                   onCancel={handleCancel}
                   onReschedule={(a) => setRescheduleTarget(a)}
                   onPay={(a) => setPayTarget(a)}
