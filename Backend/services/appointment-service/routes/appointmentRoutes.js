@@ -8,6 +8,7 @@ import {
   cancelAppointment,
   rescheduleAppointment,
   confirmAppointment,
+  acceptAppointment,  // Add this import
   confirmPayment,
   completeAppointment,
   getAllAppointments,
@@ -15,7 +16,8 @@ import {
   updateAppointment,
   rejectAppointment,
   getAvailableSlots,
-  getAppointmentsByStatus
+  getAppointmentsByStatus,
+  getAppointmentStatus  // Add this import
 } from "../controllers/appointmentController.js";
 
 import {
@@ -28,29 +30,29 @@ import {
 
 const router = express.Router();
 
-
 // ─────────────────────────────────────────────
 // 🟢 CREATE APPOINTMENT
 // ─────────────────────────────────────────────
 router.post("/appointments", protect, patientOnly, bookAppointment);
 
-
 // ─────────────────────────────────────────────
 // 🔍 FILTER & SPECIAL ROUTES (IMPORTANT FIRST)
 // ─────────────────────────────────────────────
 
+// Get appointment status info (can cancel, can reschedule, etc.)
+router.get("/appointments/:id/status", protect, getAppointmentStatus);
+
 // Get appointments by status (pending, confirmed, etc.)
-router.get("/appointments/status/:status", protect,getAppointmentsByStatus);
+router.get("/appointments/status/:status", protect, getAppointmentsByStatus);
 
 // Get available slots for a doctor
 router.get("/appointments/availability/:doctorId", getAvailableSlots);
 
 // Get all appointments of a patient
-router.get("/appointments/patient/:patientId", getPatientAppointments);
+router.get("/appointments/patient/:patientId", protect, patientOnly, getPatientAppointments);
 
 // Get all appointments of a doctor
-router.get("/appointments/doctor/:doctorId", getDoctorAppointments);
-
+router.get("/appointments/doctor/:doctorId", protect, doctorOnly, getDoctorAppointments);
 
 // ─────────────────────────────────────────────
 // 🛡️ ADMIN ROUTES
@@ -62,37 +64,37 @@ router.get("/appointments", protect, adminOnly, getAllAppointments);
 // Delete appointment (hard delete)
 router.delete("/appointments/:id", protect, adminOnly, deleteAppointment);
 
-
 // ─────────────────────────────────────────────
-// ⚙️ ACTION ROUTES
+// ⚙️ ACTION ROUTES (IN CORRECT WORKFLOW ORDER)
 // ─────────────────────────────────────────────
 
-// Cancel appointment
+// 1. Cancel appointment (patient/doctor can cancel in pending/accepted/rescheduled states)
 router.put("/appointments/:id/cancel", protect, patientOrDoctor, cancelAppointment);
 
-// Reschedule appointment
+// 2. Reschedule appointment (patient only, only in pending state)
 router.put("/appointments/:id/reschedule", protect, patientOnly, rescheduleAppointment);
 
-// Doctor confirms appointment
-router.put("/appointments/:id/confirm", protect, doctorOnly, confirmAppointment);
+// 3. Doctor accepts appointment (pending/rescheduled -> accepted)
+router.put("/appointments/:id/accept", protect, doctorOnly, acceptAppointment);
 
-// Doctor rejects appointment
+// 4. Doctor rejects appointment (pending/rescheduled -> rejected)
 router.put("/appointments/:id/reject", protect, doctorOnly, rejectAppointment);
 
-// Patient confirms payment
+// 5. Patient confirms payment (accepted -> confirmed)
 router.put("/appointments/:id/confirm-payment", protect, patientOnly, confirmPayment);
 
-// Doctor marks as completed
+// 6. Doctor completes appointment after session (confirmed -> completed)
 router.put("/appointments/:id/complete", protect, doctorOnly, completeAppointment);
 
-// Update appointment details (reason, notes, etc.)
+// 7. Update appointment details (reason, notes, etc.) - only in pending/accepted states
 router.put("/appointments/:id", protect, patientOnly, updateAppointment);
-
 
 // ─────────────────────────────────────────────
 // 📌 SINGLE APPOINTMENT (KEEP LAST)
 // ─────────────────────────────────────────────
 router.get("/appointments/:id", getAppointmentById);
 
+// Backward compatibility - keep old confirm route
+router.put("/appointments/:id/confirm", protect, doctorOnly, confirmAppointment);
 
 export default router;

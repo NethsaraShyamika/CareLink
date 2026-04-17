@@ -110,6 +110,15 @@ const CSS = `
     background: var(--bg); border-radius: var(--r-md);
     padding: 10px 12px; margin-bottom: 10px;
     border: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .sb-user-card:hover {
+    background: var(--accent-light);
+    border-color: var(--accent);
+  }
+  .sb-user-card:active {
+    transform: scale(0.98);
   }
   .sb-av {
     width: 38px; height: 38px; border-radius: 50%;
@@ -520,8 +529,6 @@ function AppointmentCard({ appt, patientName, onAccept, onReject, onComplete, on
     .join("")
     .toUpperCase();
 
-  const isVideo = false; // Your appointment model doesn't have type, you can add it
-
   return (
     <div className="appt-card">
       <div className="appt-card-inner">
@@ -537,7 +544,7 @@ function AppointmentCard({ appt, patientName, onAccept, onReject, onComplete, on
               <span className="appt-date">{Icon.clock} {formatDate(appt.date)} at {formatTime(appt.timeSlot)}</span>
             </div>
           </div>
-          <div className="badge" style={{ marginRight: "12px" }} className={statusMeta.class}>
+          <div className={`badge ${statusMeta.class}`} style={{ marginRight: "12px" }}>
             {statusMeta.label}
           </div>
           <div className="appt-actions">
@@ -680,7 +687,6 @@ export default function DoctorAppointments() {
     
     try {
       const token = localStorage.getItem("token");
-      // You need an endpoint to get user by ID from auth service
       const response = await axios.get(`http://localhost:3001/api/users/${patientId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -786,6 +792,14 @@ export default function DoctorAppointments() {
     navigate("/login");
   };
 
+  // Navigation handlers
+  const navigateToDashboard = () => navigate("/doctor/dashboard");
+  const navigateToAppointments = () => navigate("/doctor/appointments");
+  const navigateToPatients = () => navigate("/doctor/patients");
+  const navigateToVideo = () => navigate("/doctor/video");
+  const navigateToPrescriptions = () => navigate("/doctor/prescriptions");
+  const navigateToSettings = () => navigate("/doctor/profile");
+
   // Filtering
   const filteredAppointments = appointments.filter((appt) => {
     const patientName = patientCache[appt.patientId] || "";
@@ -856,23 +870,23 @@ export default function DoctorAppointments() {
           <nav className="sb-nav">
             <div className="sb-section">
               <div className="sb-section-label">Overview</div>
-              <NavItem icon={Icon.home} label="Dashboard" active={activeNav === "dashboard"} onClick={() => navigate("/doctor/dashboard")} />
-              <NavItem icon={Icon.cal} label="Appointments" active={activeNav === "appointments"} onClick={() => navigate("/doctor/appointments")} badge={counts.pending || undefined} />
-              <NavItem icon={Icon.users} label="My Patients" active={false} onClick={() => navigate("/doctor/patients")} />
+              <NavItem icon={Icon.home} label="Dashboard" active={activeNav === "dashboard"} onClick={navigateToDashboard} />
+              <NavItem icon={Icon.cal} label="Appointments" active={activeNav === "appointments"} onClick={navigateToAppointments} badge={counts.pending || undefined} />
+              <NavItem icon={Icon.users} label="My Patients" active={false} onClick={navigateToPatients} />
             </div>
             <div className="sb-section">
               <div className="sb-section-label">Consultations</div>
-              <NavItem icon={Icon.video} label="Video Sessions" active={false} onClick={() => navigate("/doctor/video")} />
-              <NavItem icon={Icon.rx} label="Prescriptions" active={false} onClick={() => navigate("/doctor/prescriptions")} />
+              <NavItem icon={Icon.video} label="Video Sessions" active={false} onClick={navigateToVideo} />
+              <NavItem icon={Icon.rx} label="Prescriptions" active={false} onClick={navigateToPrescriptions} />
             </div>
             <div className="sb-section">
               <div className="sb-section-label">Account</div>
-              <NavItem icon={Icon.settings} label="Settings" active={false} onClick={() => navigate("/doctor/settings")} />
+              <NavItem icon={Icon.settings} label="Settings" active={false} onClick={navigateToSettings} />
             </div>
           </nav>
 
           <div className="sb-bottom">
-            <div className="sb-user-card">
+            <div className="sb-user-card" onClick={navigateToSettings}>
               <div className="sb-av">{doctorInitials}</div>
               <div>
                 <div className="sb-uname">{doctorName}</div>

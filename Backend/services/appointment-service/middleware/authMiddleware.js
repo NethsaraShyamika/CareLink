@@ -1,7 +1,8 @@
 import jwt from "jsonwebtoken";
+import axios from "axios";
 
 // 🔐 Protect route
-export const protect = (req, res, next) => {
+export const protect = async (req, res, next) => {
   let token = req.headers.authorization;
 
   // ✅ FIRST check token exists
@@ -17,9 +18,13 @@ export const protect = (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+    // Set basic user info from token
     req.user = {
       id: decoded.id,
-      role: decoded.role, // 'patient', 'doctor', 'admin'
+      role: decoded.role,
+      firstName: decoded.firstName || "",
+      lastName: decoded.lastName || "",
+      email: decoded.email || "",
     };
 
     next();
@@ -29,7 +34,6 @@ export const protect = (req, res, next) => {
     });
   }
 };
-
 
 // 👤 Only Patient
 export const patientOnly = (req, res, next) => {
@@ -41,7 +45,6 @@ export const patientOnly = (req, res, next) => {
   next();
 };
 
-
 // 🩺 Only Doctor
 export const doctorOnly = (req, res, next) => {
   if (req.user.role !== "doctor") {
@@ -52,7 +55,6 @@ export const doctorOnly = (req, res, next) => {
   next();
 };
 
-
 // 🛡 Admin Only
 export const adminOnly = (req, res, next) => {
   if (req.user.role !== "admin") {
@@ -62,7 +64,6 @@ export const adminOnly = (req, res, next) => {
   }
   next();
 };
-
 
 // 🔄 Patient OR Doctor
 export const patientOrDoctor = (req, res, next) => {

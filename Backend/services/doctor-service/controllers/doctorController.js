@@ -9,14 +9,13 @@ import Doctor from "../models/doctor.js";
 export const createOrUpdateProfile = async (req, res) => {
   try {
     const userId = req.user.id;
-
     let doctor = await Doctor.findOne({ userId });
 
     if (doctor) {
       doctor = await Doctor.findOneAndUpdate(
         { userId },
         req.body,
-        { new: true }
+        { returnDocument: 'after' }  // ✅ Use returnDocument instead of new
       );
       return res.json({ message: "Profile updated", doctor });
     }
@@ -79,7 +78,7 @@ export const updateAvailability = async (req, res) => {
         availabilityEndTime: req.body.availabilityEndTime,
         slotMinutes: req.body.slotMinutes,
       },
-      { new: true }
+      { returnDocument: 'after' }  // ✅ Change from { new: true } to { returnDocument: 'after' }
     );
 
     res.json({ message: "Availability updated", doctor });
@@ -131,7 +130,7 @@ export const verifyDoctor = async (req, res) => {
         verifiedBy: req.user.id,
         verifiedAt: new Date(),
       },
-      { new: true }
+      { returnDocument: 'after' }  // ✅ Change from { new: true } to { returnDocument: 'after' }
     );
 
     res.json({ message: "Doctor approved", doctor });
@@ -150,7 +149,7 @@ export const rejectDoctor = async (req, res) => {
         verifiedBy: req.user.id,
         verifiedAt: new Date(),
       },
-      { new: true }
+      { returnDocument: 'after' }  // ✅ Change from { new: true } to { returnDocument: 'after' }
     );
 
     res.json({ message: "Doctor rejected", doctor });

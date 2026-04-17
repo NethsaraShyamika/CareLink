@@ -2,37 +2,34 @@ import mongoose from "mongoose";
 
 const appointmentSchema = new mongoose.Schema(
   {
-    // Patient who booked
     patientId: {
       type: String,
       required: [true, "Patient ID is required"],
     },
-
-    // Doctor being booked
+    firstName: {
+      type: String,
+      required: [true, "First name is required"],
+    },
+    lastName: {
+      type: String,
+      required: [true, "Last name is required"],
+    },
     doctorId: {
       type: String,
       required: [true, "Doctor ID is required"],
     },
-
-    // Appointment date
     date: {
       type: Date,
       required: [true, "Date is required"],
     },
-
-    // Time slot
     timeSlot: {
       type: String,
       required: [true, "Time slot is required"],
     },
-
-    // Reason
     reason: {
       type: String,
       default: "",
     },
-
-    // Status
     status: {
       type: String,
       enum: [
@@ -42,28 +39,22 @@ const appointmentSchema = new mongoose.Schema(
         "cancelled",
         "completed",
         "rescheduled",
+        "rejected",
       ],
       default: "pending",
     },
-
-    // Doctor notes
     doctorNotes: {
       type: String,
       default: "",
     },
-
-    // Reschedule tracking
     rescheduledDate: {
       type: Date,
       default: null,
     },
-
     rescheduledTimeSlot: {
       type: String,
       default: null,
     },
-
-    // Reminder sent flag – moved inside the schema
     reminderSent: {
       type: Boolean,
       default: false,
@@ -74,6 +65,5 @@ const appointmentSchema = new mongoose.Schema(
   }
 );
 
-// Export the model
 const Appointment = mongoose.model("Appointment", appointmentSchema);
 export default Appointment;
