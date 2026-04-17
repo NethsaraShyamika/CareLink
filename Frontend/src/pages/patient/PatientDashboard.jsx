@@ -671,6 +671,18 @@ const PatientDashboard = () => {
                 <span className="text-xs text-white/80 mt-1">Start a chat</span>
               </button>
             </SlideInRight>
+            {/* Join Call Room */}
+            <SlideInRight delay={0.4}>
+              <button onClick={() => window.open("/video?role=patient", "_blank")} className="w-full h-full bg-gradient-to-r from-[#2563EB] to-[#1D4ED8] text-white rounded-xl shadow p-4 flex flex-col items-center hover:from-[#1D4ED8] hover:to-[#1E3A8A] transition">
+                <span className="mb-2 flex items-center justify-center">
+                  <span className="bg-white/40 backdrop-blur-md rounded-lg p-2 flex items-center justify-center">
+                    <span className="material-icons text-white text-lg">videocam</span>
+                  </span>
+                </span>
+                <span className="font-medium">Join Room</span>
+                <span className="text-xs text-white/80 mt-1">Start video call</span>
+              </button>
+            </SlideInRight>
           </div>
 
           {/* Main Dashboard Sections */}

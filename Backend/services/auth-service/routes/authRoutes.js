@@ -23,4 +23,7 @@ router.get('/users', verifyToken, requireRole('admin'), authController.getAllUse
 router.post('/block/:id', verifyToken, requireRole('admin'), authController.blockUser);
 router.post('/unblock/:id', verifyToken, requireRole('admin'), authController.unblockUser);
 
+// ─── Internal Routes ───────────────────────────────────────────────────────────
+router.get('/internal/users/:id', authController.getUserById);
+
 export default router;

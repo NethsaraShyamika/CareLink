@@ -347,9 +347,9 @@ function IconWarning() {
 
 /* ── Main Component ── */
 export default function PaymentSuccess({ onGoHome, onViewHistory }) {
-  const [status, setStatus]       = useState("confirming"); // confirming | confirmed | error
+  const [status, setStatus]           = useState("confirming"); // confirming | confirmed | error
   const [paymentData, setPaymentData] = useState(null);
-  const [step, setStep]           = useState(0); // 0=payment, 1=appointment
+  const [step, setStep]               = useState(0); // 0=payment, 1=appointment
 
   useEffect(() => {
     const params    = new URLSearchParams(window.location.search);
@@ -386,34 +386,35 @@ export default function PaymentSuccess({ onGoHome, onViewHistory }) {
       const payment = confirmPaymentJson.payment;
       setPaymentData(payment);
 
-      /* Step 2 — confirm appointment */
+      /* Step 2 — confirm appointment (best-effort, non-blocking) */
       setStep(1);
-      const confirmRes  = await fetch(
-        `${APPOINTMENT_API}/appointments/${payment.appointmentId}/confirm-payment`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token()}`,
-          },
-          credentials: "include",
-        }
-      );
-      const confirmJson = await confirmRes.json();
-
-      if (confirmRes.ok && confirmJson.message === "Payment confirmed") {
-        setStatus("confirmed");
-      } else {
-        console.error("Failed to confirm appointment:", confirmJson.message);
-        setStatus("error");
+      try {
+        await fetch(
+          `${APPOINTMENT_API}/appointments/${payment.appointmentId}/confirm-payment`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token()}`,
+            },
+            credentials: "include",
+          }
+        );
+      } catch (apptErr) {
+        // Log but don't block — payment already succeeded
+        console.warn("Appointment confirm call failed (non-fatal):", apptErr);
       }
+
+      // Payment was confirmed — always show success
+      setStatus("confirmed");
+
     } catch (err) {
       console.error("Confirm payment error:", err);
       setStatus("error");
     }
   };
 
-  const goHome     = () => onGoHome     ? onGoHome()     : (window.location.href = "/patient/dashboard");
+  const goHome      = () => onGoHome      ? onGoHome()      : (window.location.href = "/patient/dashboard");
   const viewHistory = () => onViewHistory ? onViewHistory() : (window.location.href = "/payments/history");
 
   return (

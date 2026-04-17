@@ -3,12 +3,57 @@ import axios from "axios";
 
 const sendNotification = async (type, appointment) => {
   try {
+    const NOTIFICATION_URL = process.env.NOTIFICATION_SERVICE_URL || "http://localhost:3006/notification";
+    const AUTH_URL = process.env.AUTH_SERVICE_URL || "http://localhost:3008";
+    const DOCTOR_URL = process.env.DOCTOR_SERVICE_URL || "http://localhost:3002";
+
+    // 1. Fetch patient user data
+    let patientData = null;
+    try {
+      const pRes = await axios.get(`${AUTH_URL}/api/auth/internal/users/${appointment.patientId}`);
+      patientData = pRes.data;
+    } catch(e) { console.error("Error fetching patient", e.message); }
+
+    // 2. Fetch doctor user data
+    let doctorData = null;
+    try {
+      const dRes = await axios.get(`${DOCTOR_URL}/api/doctors/doc/${appointment.doctorId}`);
+      if (dRes.data && dRes.data.userId) {
+         const uRes = await axios.get(`${AUTH_URL}/api/auth/internal/users/${dRes.data.userId}`);
+         doctorData = uRes.data;
+      }
+    } catch(e) { console.error("Error fetching doctor", e.message); }
+
+    const patientEmail = patientData?.email || "patient@gmail.com";
+    const patientName = patientData ? `${patientData.firstName} ${patientData.lastName}` : `${appointment.firstName} ${appointment.lastName}`;
+    const patientPhone = patientData?.phone || "";
+
+    const doctorEmail = doctorData?.email || "doctor@gmail.com";
+    const doctorName = doctorData ? `${doctorData.firstName} ${doctorData.lastName}` : `${appointment.doctorId}`;
+    const doctorPhone = doctorData?.phone || "";
+
+    // Map 'type' to the correct endpoint in notification service
+    let endpoint = "";
+    if (type === "booked") endpoint = "/appointment-booked";
+    else if (type === "accepted") endpoint = "/appointment-accepted";
+    else if (type === "cancelled") endpoint = "/appointment-cancelled";
+    else if (type === "completed") endpoint = "/consultation-completed";
+    else if (type === "confirmed") endpoint = "/notifications/confirmed";
+    else if (type === "rescheduled") endpoint = "/notifications/rescheduled";
+    else {
+      console.log(`No explicit mapped route for notification type: ${type}`);
+      return; 
+    }
+
     await axios.post(
-      `${process.env.NOTIFICATION_SERVICE_URL}/api/notifications/${type}`,
+      `${NOTIFICATION_URL}${endpoint}`,
       {
-        patientEmail: "patient@gmail.com", // temp
-        patientName: `${appointment.firstName} ${appointment.lastName}`,
-        doctorName: "Dr. " + appointment.doctorId,
+        patientEmail,
+        patientName,
+        patientPhone,
+        doctorEmail,
+        doctorName: "Dr. " + doctorName,
+        doctorPhone,
         appointmentId: appointment._id,
         date: appointment.date,
         time: appointment.timeSlot,
@@ -282,8 +327,8 @@ export const rescheduleAppointment = async (req, res) => {
 };
 
 // ────────────────────────────────────────────────────
-// Doctor Accept Appointment
-// Changes status from pending/rescheduled to accepted
+// Doctor Confirm Appointment
+// Changes status from pending/rescheduled to confirmed
 // ────────────────────────────────────────────────────
 export const acceptAppointment = async (req, res) => {
   try {
@@ -298,10 +343,10 @@ export const acceptAppointment = async (req, res) => {
       return res.status(403).json({ message: "Only doctors can accept appointments" });
     }
 
-    // Only pending or rescheduled appointments can be accepted
-    if (!["pending", "rescheduled"].includes(appointment.status)) {
+    // Only pending, rescheduled, or already accepted appointments can be confirmed by doctor
+    if (!["pending", "rescheduled", "accepted"].includes(appointment.status)) {
       return res.status(400).json({
-        message: `Cannot accept appointment in ${appointment.status} state. Only pending or rescheduled appointments can be accepted.`,
+        message: `Cannot confirm appointment in ${appointment.status} state. Only pending, accepted, or rescheduled appointments can be confirmed.`,
       });
     }
 
@@ -310,7 +355,7 @@ export const acceptAppointment = async (req, res) => {
     await sendNotification("accepted", appointment);
 
     res.status(200).json({
-      message: "Appointment accepted. Awaiting payment confirmation.",
+      message: "Appointment accepted. Patient has been notified.",
       appointment,
     });
 

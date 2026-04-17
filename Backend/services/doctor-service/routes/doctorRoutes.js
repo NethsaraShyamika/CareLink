@@ -11,6 +11,7 @@ import {
   getAllDoctors,
   getDoctorsBySpecialization,
   searchDoctors,
+  getDoctorById,
 } from "../controllers/doctorController.js";
 
 import { protect, authorizeRoles } from "../middleware/authMiddleware.js";
@@ -36,5 +37,6 @@ router.get("/specialization/:specialization", getDoctorsBySpecialization);
 router.get("/search", searchDoctors);
 
 router.get("/:userId", getDoctorByUserId);
+router.get("/doc/:id", getDoctorById);
 
 export default router;

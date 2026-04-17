@@ -56,10 +56,20 @@ function JoinRoom({
   }, []);
 
   const handleJoin = () => {
-    if (!aptNumber) return alert("Please enter Appointment ID");
-    if (!uid) return alert("Please enter your UID");
+    const safeUid = uid || String(Math.floor(Math.random() * 900000 + 100000));
+    const safeAptNumber = aptNumber || String(Math.floor(Math.random() * 900000 + 100000));
+    const safeAppointmentId = `APT-${safeAptNumber}`;
+
+    if (!uid) {
+      setUid(safeUid);
+    }
+    if (!aptNumber) {
+      setAptNumber(safeAptNumber);
+      setAppointmentId(safeAppointmentId);
+    }
+
     stopPreview();
-    joinCall(micEnabled, cameraEnabled);
+    joinCall(micEnabled, cameraEnabled, safeAppointmentId, safeUid);
   };
 
   return (

@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import AgoraRTC from "agora-rtc-sdk-ng";
+import API_BASE_URL from "../config.js";
 import JoinRoom from "./JoinRoom.jsx";
 import CallRoom from "./CallRoom.jsx";
 import "../../components/videoCall.css";
@@ -30,8 +31,14 @@ function VideoCall({
     }
   }, [autoJoinEnabled, appointmentId, joined]);
 
-  const joinCall = async (micEnabled = true, cameraEnabled = true) => {
+  const joinCall = async (micEnabled = true, cameraEnabled = true, appointmentIdOverride, uidOverride) => {
     try {
+      const finalAppointmentId = appointmentIdOverride || appointmentId || `APT-${Math.floor(Math.random() * 900000 + 100000)}`;
+      const finalUid = parseInt(uidOverride || uid) || Math.floor(Math.random() * 900000 + 100000);
+
+      if (!appointmentId) setAppointmentId(finalAppointmentId);
+      if (!uid) setUid(String(finalUid));
+
       // Create Agora client
       clientRef.current = AgoraRTC.createClient({
         mode: "rtc",
@@ -61,14 +68,14 @@ function VideoCall({
           "Bypass-Tunnel-Reminder": "true",
         },
         body: JSON.stringify({
-          appointmentId,
+          appointmentId: finalAppointmentId,
           doctorId: "DOC-001",
           patientId: "PAT-001",
         }),
       });
 
       const randomUid =
-        parseInt(uid) || Math.floor(Math.random() * 100000);
+        finalUid;
 
       // Get token from backend
       const tokenRes = await fetch(
@@ -80,7 +87,7 @@ function VideoCall({
             "Bypass-Tunnel-Reminder": "true",
           },
           body: JSON.stringify({
-            channelName: `appointment_${appointmentId}`,
+            channelName: `appointment_${finalAppointmentId}`,
             uid: randomUid,
             role,
           }),
@@ -89,11 +96,11 @@ function VideoCall({
 
       const { appId, channelName, token } = await tokenRes.json();
 
-      // Join channel
+      // Join channel; if no token is provided, pass null to allow insecure/legacy mode
       await clientRef.current.join(
         appId,
         channelName,
-        token,
+        token || null,
         randomUid
       );
 

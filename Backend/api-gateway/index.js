@@ -16,7 +16,7 @@ app.use(
 
 // Define routes and their target microservices
 const routes = {
-  "/api/patients": "http://localhost:3001",
+  "/api/patients": "http://localhost:5003",
   "/api/doctors": "http://localhost:3002",
   "/api/appointments": "http://localhost:5002",
   "/api/telemedicines": "http://localhost:3004",

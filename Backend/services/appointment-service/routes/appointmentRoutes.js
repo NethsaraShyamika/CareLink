@@ -74,7 +74,7 @@ router.put("/appointments/:id/cancel", protect, patientOrDoctor, cancelAppointme
 // 2. Reschedule appointment (patient only, only in pending state)
 router.put("/appointments/:id/reschedule", protect, patientOnly, rescheduleAppointment);
 
-// 3. Doctor accepts appointment (pending/rescheduled -> accepted)
+// 3. Doctor confirms appointment (pending/rescheduled -> confirmed)
 router.put("/appointments/:id/accept", protect, doctorOnly, acceptAppointment);
 
 // 4. Doctor rejects appointment (pending/rescheduled -> rejected)
