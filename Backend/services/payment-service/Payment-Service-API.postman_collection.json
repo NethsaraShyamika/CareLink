@@ -1,0 +1,836 @@
+{
+  "info": {
+    "name": "Payment Service - Healthcare Platform",
+    "description": "Postman collection for testing Payment Microservice APIs\nBased on SE3020 Distributed Systems Assignment\n\nEndpoints:\n- Stripe Payment Intent Creation\n- Stripe Webhook\n- Payment History\n- Payment Details\n- Appointment Payment Status\n- Admin Payment Management",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Authentication & Setup",
+      "item": [
+        {
+          "name": "Generate Patient Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    let jsonData = pm.response.json();",
+                  "    pm.environment.set(\"patient_token\", jsonData.token);",
+                  "    console.log('Patient Token Set: ' + jsonData.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"patient@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{auth_service_url}}/auth/login",
+              "host": [
+                "{{auth_service_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login as patient to get JWT token\nNote: Replace with your actual auth service endpoint"
+          }
+        },
+        {
+          "name": "Generate Doctor Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    let jsonData = pm.response.json();",
+                  "    pm.environment.set(\"doctor_token\", jsonData.token);",
+                  "    console.log('Doctor Token Set: ' + jsonData.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"doctor@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{auth_service_url}}/auth/login",
+              "host": [
+                "{{auth_service_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login as doctor to get JWT token"
+          }
+        },
+        {
+          "name": "Generate Admin Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    let jsonData = pm.response.json();",
+                  "    pm.environment.set(\"admin_token\", jsonData.token);",
+                  "    console.log('Admin Token Set: ' + jsonData.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{auth_service_url}}/auth/login",
+              "host": [
+                "{{auth_service_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login as admin to get JWT token"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Stripe Payment Operations",
+      "item": [
+        {
+          "name": "Create Stripe Payment Intent (Patient Only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    let jsonData = pm.response.json();",
+                  "    pm.environment.set(\"payment_id\", jsonData.paymentId);",
+                  "    pm.environment.set(\"client_secret\", jsonData.clientSecret);",
+                  "    console.log('Payment ID: ' + jsonData.paymentId);",
+                  "    console.log('Client Secret: ' + jsonData.clientSecret);",
+                  "}",
+                  "",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has success true\", function () {",
+                  "    let jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.equal(true);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains clientSecret\", function () {",
+                  "    let jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.clientSecret).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{patient_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"appointmentId\": \"{{appointment_id}}\",\n  \"doctorId\": \"{{doctor_id}}\",\n  \"amount\": 5000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/payments/stripe/create-intent",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "stripe",
+                "create-intent"
+              ]
+            },
+            "description": "Create a Stripe PaymentIntent for consultation fees\n- PatientId extracted from JWT token\n- Returns clientSecret for frontend integration\n- Rate limited to 20 requests per 15 minutes"
+          }
+        },
+        {
+          "name": "Confirm Stripe Payment (Patient Only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has success field\", function () {",
+                  "    let jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{patient_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentIntentId\": \"pi_xxxxx\",\n  \"paymentId\": \"{{payment_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/payments/stripe/confirm",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "stripe",
+                "confirm"
+              ]
+            },
+            "description": "Confirm Stripe payment after successful charge\nFrontend calls this after Stripe Elements confirmation"
+          }
+        },
+        {
+          "name": "Stripe Webhook (No Auth Required)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has received: true\", function () {",
+                  "    let jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.received).to.equal(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "stripe-signature",
+                "value": "t=timestamp,v1=signature"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"evt_xxxxx\",\n  \"object\": \"event\",\n  \"api_version\": \"2023-08-16\",\n  \"created\": 1234567890,\n  \"data\": {\n    \"object\": {\n      \"id\": \"pi_xxxxx\",\n      \"object\": \"payment_intent\",\n      \"status\": \"succeeded\"\n    }\n  },\n  \"type\": \"payment_intent.succeeded\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/payments/stripe/webhook",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "stripe",
+                "webhook"
+              ]
+            },
+            "description": "Stripe webhook for payment status updates\n- Called automatically by Stripe\n- Validates stripe-signature header\n- No JWT authentication required\n- Updates payment status in DB"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Patient Payment Operations",
+      "item": [
+        {
+          "name": "Get Patient Payment History (Patient Only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has success true\", function () {",
+                  "    let jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.equal(true);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains payments array\", function () {",
+                  "    let jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.count).to.exist;",
+                  "    pm.expect(Array.isArray(jsonData.payments)).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{patient_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payments/history",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "history"
+              ]
+            },
+            "description": "Get current patient's payment history\n- Limited to last 20 payments\n- Sorted by creation date (newest first)\n- PatientId extracted from JWT token"
+          }
+        },
+        {
+          "name": "Get Payment by ID (Patient/Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains payment details\", function () {",
+                  "    let jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.payment._id).to.exist;",
+                  "    pm.expect(jsonData.payment.amount).to.exist;",
+                  "    pm.expect(jsonData.payment.status).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{patient_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payments/{{payment_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "{{payment_id}}"
+              ]
+            },
+            "description": "Get payment details by ID\n- Patients can only view their own payments\n- Admins can view any payment\n- Returns full payment details including status"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Appointment Payment Status",
+      "item": [
+        {
+          "name": "Get Payment by Appointment ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains payment for appointment\", function () {",
+                  "    let jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.payment.appointmentId).to.exist;",
+                  "    pm.expect(jsonData.payment.status).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{patient_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payments/appointment/{{appointment_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "appointment",
+                "{{appointment_id}}"
+              ]
+            },
+            "description": "Check payment status for a specific appointment\n- Accessible by patient, doctor, or admin\n- Returns payment status and details\n- Used before allowing video consultation to start"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Admin Payment Management",
+      "item": [
+        {
+          "name": "Get All Payments (Admin Only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has admin payment data\", function () {",
+                  "    let jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.total).to.exist;",
+                  "    pm.expect(jsonData.page).to.exist;",
+                  "    pm.expect(Array.isArray(jsonData.payments)).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payments/admin/all?status=completed&gateway=stripe&page=1&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "admin",
+                "all"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "completed"
+                },
+                {
+                  "key": "gateway",
+                  "value": "stripe"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get all payments with pagination and filtering\n- Admin only access\n- Supports filtering by status and gateway\n- Implements pagination (page, limit)\n- Returns total count and page info\n\nQuery Parameters:\n- status: pending|completed|failed|refunded|cancelled\n- gateway: stripe|payhere\n- page: page number (default 1)\n- limit: items per page (default 20)"
+          }
+        },
+        {
+          "name": "Get All Payments - With Filters",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payments/admin/all?status=failed&page=1&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "admin",
+                "all"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "failed"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get failed payments with pagination\nExample of admin filtering and monitoring"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Error Scenarios & Authorization Tests",
+      "item": [
+        {
+          "name": "Test - Missing Authorization Header",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 401\", function () {",
+                  "    pm.expect(pm.response.code).to.equal(401);",
+                  "});",
+                  "",
+                  "pm.test(\"Response shows token required\", function () {",
+                  "    let jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include(\"token\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/payments/history",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "history"
+              ]
+            },
+            "description": "Test missing Authorization header\nExpected: 401 Unauthorized"
+          }
+        },
+        {
+          "name": "Test - Invalid Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 403\", function () {",
+                  "    pm.expect(pm.response.code).to.equal(403);",
+                  "});",
+                  "",
+                  "pm.test(\"Response shows invalid token\", function () {",
+                  "    let jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include(\"Invalid\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer invalid_token_xyz"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payments/history",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "history"
+              ]
+            },
+            "description": "Test invalid JWT token\nExpected: 403 Forbidden"
+          }
+        },
+        {
+          "name": "Test - Doctor Access to Patient-Only Endpoint",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 403\", function () {",
+                  "    pm.expect(pm.response.code).to.equal(403);",
+                  "});",
+                  "",
+                  "pm.test(\"Response shows permission denied\", function () {",
+                  "    let jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include(\"permissions\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{doctor_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"appointmentId\": \"{{appointment_id}}\",\n  \"doctorId\": \"{{doctor_id}}\",\n  \"amount\": 5000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/payments/stripe/create-intent",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "stripe",
+                "create-intent"
+              ]
+            },
+            "description": "Test role-based access control\nDoctor trying to create payment intent (patient only)\nExpected: 403 Forbidden"
+          }
+        },
+        {
+          "name": "Test - Patient Access to Admin Endpoint",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 403\", function () {",
+                  "    pm.expect(pm.response.code).to.equal(403);",
+                  "});",
+                  "",
+                  "pm.test(\"Response shows insufficient permissions\", function () {",
+                  "    let jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include(\"permissions\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{patient_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payments/admin/all",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "admin",
+                "all"
+              ]
+            },
+            "description": "Test role-based access control\nPatient trying to access admin endpoint\nExpected: 403 Forbidden"
+          }
+        },
+        {
+          "name": "Test - Invalid Payment ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 404\", function () {",
+                  "    pm.expect(pm.response.code).to.equal(404);",
+                  "});",
+                  "",
+                  "pm.test(\"Response shows payment not found\", function () {",
+                  "    let jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include(\"not found\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{patient_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payments/invalid_id_123",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "invalid_id_123"
+              ]
+            },
+            "description": "Test with invalid payment ID\nExpected: 404 Not Found"
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5005",
+      "type": "string"
+    },
+    {
+      "key": "auth_service_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "patient_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "doctor_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "payment_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "appointment_id",
+      "value": "65a5c7f9d0c5e8f1a2b3c4d5",
+      "type": "string"
+    },
+    {
+      "key": "doctor_id",
+      "value": "65a5c7f9d0c5e8f1a2b3c4d6",
+      "type": "string"
+    },
+    {
+      "key": "client_secret",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
