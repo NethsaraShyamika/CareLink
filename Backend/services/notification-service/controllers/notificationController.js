@@ -265,3 +265,50 @@ export const sendReminder = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
+
+
+export const appointmentConfirmed = async (req, res) => {
+  try {
+    const { patientEmail, patientName, appointmentId, date, time } = req.body;
+
+    await sendEmail(
+      patientEmail,
+      patientName,
+      "✅ Appointment Confirmed",
+      `
+      <p>Hi ${patientName},</p>
+      <p>Your appointment <strong>${appointmentId}</strong> has been confirmed.</p>
+      <p><strong>Date:</strong> ${date}</p>
+      <p><strong>Time:</strong> ${time}</p>
+      `
+    );
+
+    return res.status(200).json({ message: "Confirmed notification sent" });
+
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+export const appointmentRescheduled = async (req, res) => {
+  try {
+    const { patientEmail, patientName, appointmentId, date, time } = req.body;
+
+    await sendEmail(
+      patientEmail,
+      patientName,
+      "🔄 Appointment Rescheduled",
+      `
+      <p>Hi ${patientName},</p>
+      <p>Your appointment <strong>${appointmentId}</strong> has been rescheduled.</p>
+      <p><strong>New Date:</strong> ${date}</p>
+      <p><strong>New Time:</strong> ${time}</p>
+      `
+    );
+
+    return res.status(200).json({ message: "Rescheduled notification sent" });
+
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};

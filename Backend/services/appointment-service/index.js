@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import connectDB from "./config/db.js";
 import "./jobs/reminderJob.js"; // Start the reminder job when the service starts
+import appointmentRoutes from "./routes/appointmentRoutes.js";
 
 // Load .env file
 dotenv.config();
@@ -28,7 +29,7 @@ app.use((req, res, next) => {
 });
 
 // Routes
-import appointmentRoutes from "./routes/appointmentRoutes.js";
+
 app.use("/api", appointmentRoutes);
 
 // Health check
