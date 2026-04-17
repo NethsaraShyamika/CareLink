@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 
 const TABS = [
   { id: "overview", icon: "⚡", label: "Overview" },
-  { id: "users", icon: "👥", label: "User Management" },
   { id: "patients", icon: "🧑‍🤝‍🧑", label: "Patient Management" },
   { id: "doctors", icon: "🩺", label: "Doctor Verification", badge: "3" },
   { id: "appointments", icon: "📅", label: "Appointments" },

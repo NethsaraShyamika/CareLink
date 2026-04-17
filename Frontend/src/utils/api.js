@@ -27,3 +27,29 @@ export async function fetchPatientProfile(token) {
   if (!res.ok) throw new Error("Failed to fetch profile");
   return await res.json();
 }
+// Utility to update patient profile in backend
+export async function updatePatientProfile(token, profileData) {
+  const res = await fetch("http://localhost:5002/api/patients/profile", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+    body: JSON.stringify(profileData)
+  });
+  if (!res.ok) throw new Error("Failed to update profile");
+  return await res.json();
+}
+// Utility to create patient profile in backend
+export async function createPatientProfile(token, profileData) {
+  const res = await fetch("http://localhost:5002/api/patients/profile", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+    body: JSON.stringify(profileData)
+  });
+  if (!res.ok) throw new Error("Failed to create profile");
+  return await res.json();
+}
