@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 
 import VideoCall from "./pages/shared/VideoCall";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminPaymentManager from "./pages/admin/Adminpaymentmanager";
 
 import PaymentSuccess from "./pages/patient/Paymentsuccess";
 import PaymentFail from "./pages/patient/Paymentfail";
@@ -14,6 +15,8 @@ import PatientDashboard from "./pages/patient/PatientDashboard";
 import DoctorDashboard from "./pages/doctor/DoctorDashboard";
 import SymptomCheck from "./pages/patient/Symptomcheck";
 import SymptomHistory from "./pages/patient/Symptomhistory";
+import PatientAppointment from "./pages/patient/PatientAppointment";
+import DoctorAppointments from "./pages/doctor/DoctorAppointment";
 
 function App() {
   const getQueryParam = (param) => {
@@ -39,13 +42,16 @@ function App() {
         <Route path="/patient/symptom-check" element={<SymptomCheck />} />
         <Route path="/patient/symptom-history" element={<SymptomHistory />} />
         <Route path="/payments/history" element={<PaymentHistory />} />
+        <Route path="/patient/appointments" element={<PatientAppointment />} />
 
 
         {/* Doctor */}
         <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
+        <Route path="/doctor/appointments" element={<DoctorAppointments />} />
 
         {/* Admin */}
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/payments" element={<AdminPaymentManager />} />
 
         {/* Video Call */}
         <Route

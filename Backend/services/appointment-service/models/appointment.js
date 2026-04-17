@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const appointmentSchema = new mongoose.Schema(
   {
@@ -14,38 +14,45 @@ const appointmentSchema = new mongoose.Schema(
       required: [true, "Doctor ID is required"],
     },
 
-    // Appointment date  e.g. "2026-04-10"
+    // Appointment date
     date: {
       type: Date,
       required: [true, "Date is required"],
     },
 
-    // Time slot  e.g. "10:00 AM - 10:30 AM"
+    // Time slot
     timeSlot: {
       type: String,
       required: [true, "Time slot is required"],
     },
 
-    // Reason for visit (optional)
+    // Reason
     reason: {
       type: String,
       default: "",
     },
 
-    // Status of the appointment
+    // Status
     status: {
       type: String,
-      enum: ["pending", "confirmed", "cancelled", "completed", "rescheduled"],
+      enum: [
+        "pending",
+        "accepted",
+        "confirmed",
+        "cancelled",
+        "completed",
+        "rescheduled",
+      ],
       default: "pending",
     },
 
-    // Doctor can add notes after the visit
+    // Doctor notes
     doctorNotes: {
       type: String,
       default: "",
     },
 
-    // Stored when rescheduled
+    // Reschedule tracking
     rescheduledDate: {
       type: Date,
       default: null,
@@ -55,12 +62,18 @@ const appointmentSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+
+    // Reminder sent flag – moved inside the schema
+    reminderSent: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
-    timestamps: true, // auto adds createdAt and updatedAt
+    timestamps: true,
   }
 );
 
+// Export the model
 const Appointment = mongoose.model("Appointment", appointmentSchema);
-
-module.exports = Appointment;
+export default Appointment;

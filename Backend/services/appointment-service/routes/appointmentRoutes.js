@@ -1,35 +1,42 @@
-const express = require("express");
-const router = express.Router();
-
-const {
+import express from "express";
+import {
   bookAppointment,
   getAppointmentById,
   getPatientAppointments,
   getDoctorAppointments,
   cancelAppointment,
   rescheduleAppointment,
-  trackAppointmentStatus,
   confirmAppointment,
+  confirmPayment,
   completeAppointment,
-  searchDoctors,
-} = require("../controllers/appointmentController");
+} from "../controllers/appointmentController.js";
 
-// ── Doctor search ──
-router.get("/doctors/search", searchDoctors);
+import {
+  protect,
+  patientOnly,
+  doctorOnly,
+  patientOrDoctor,
+} from "../middleware/authMiddleware.js";
+
+const router = express.Router();
 
 // ── Appointment routes ──
+router.post("/appointments", protect, patientOnly, bookAppointment);
 
-// Note: the /patient/:patientId and /doctor/:doctorId routes MUST come
-// before /:id  — otherwise Express reads "patient" as the :id value
+router.get("/appointments/:id", getAppointmentById);
+
 router.get("/appointments/patient/:patientId", getPatientAppointments);
+
 router.get("/appointments/doctor/:doctorId", getDoctorAppointments);
 
-router.post("/appointments", bookAppointment);
-router.get("/appointments/:id", getAppointmentById);
-router.get("/appointments/:id/status", trackAppointmentStatus);
-router.put("/appointments/:id/cancel", cancelAppointment);
-router.put("/appointments/:id/reschedule", rescheduleAppointment);
-router.put("/appointments/:id/confirm", confirmAppointment);
-router.put("/appointments/:id/complete", completeAppointment);
+router.put("/appointments/:id/cancel", protect, patientOrDoctor, cancelAppointment);
 
-module.exports = router;
+router.put("/appointments/:id/reschedule", protect, patientOnly, rescheduleAppointment);
+
+router.put("/appointments/:id/confirm", protect, doctorOnly, confirmAppointment);
+
+router.put("/appointments/:id/confirm-payment", confirmPayment);
+
+router.put("/appointments/:id/complete", protect, doctorOnly, completeAppointment);
+
+export default router;

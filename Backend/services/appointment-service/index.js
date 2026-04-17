@@ -1,7 +1,8 @@
-const express = require("express");
-const dotenv = require("dotenv");
-const cors = require("cors");
-const connectDB = require("./config/db");
+import express from "express";
+import dotenv from "dotenv";
+import cors from "cors";
+import connectDB from "./config/db.js";
+import "./jobs/reminderJob.js"; // Start the reminder job when the service starts
 
 // Load .env file
 dotenv.config();
@@ -11,16 +12,26 @@ connectDB();
 
 const app = express();
 
-// Allow frontend to call this service
-app.use(cors());
-
-// Read JSON from request body
+// Middleware
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "http://localhost:5174"], // Allow frontend origins
+    credentials: true, // Allow credentials
+  })
+);
 app.use(express.json());
 
-// All routes
-app.use("/api", require("./routes/appointmentRoutes"));
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
 
-// Health check — open http://localhost:5002/health to confirm it is running
+// Routes
+import appointmentRoutes from "./routes/appointmentRoutes.js";
+app.use("/api", appointmentRoutes);
+
+// Health check
 app.get("/health", (req, res) => {
   res.json({ status: "OK", service: "Appointment Service" });
 });

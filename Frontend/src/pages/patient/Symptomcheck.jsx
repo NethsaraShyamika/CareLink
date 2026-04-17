@@ -24,7 +24,8 @@ import {
   ChevronDown,
 } from "lucide-react";
 
-const API_BASE = (import.meta.env.VITE_API_BASE || "http://localhost:5000") + "/api/symptoms";
+const API_BASE =
+  (import.meta.env.VITE_API_BASE || "http://localhost:5000") + "/api/symptoms";
 
 const SYMPTOM_SUGGESTIONS = [
   "Headache",
@@ -165,7 +166,10 @@ export default function SymptomCheck({ token: propToken, onCheckComplete }) {
       try {
         data = JSON.parse(text);
       } catch (err) {
-        console.error("Failed to parse JSON. Server returned:", text.substring(0, 300));
+        console.error(
+          "Failed to parse JSON. Server returned:",
+          text.substring(0, 300),
+        );
         throw new Error("Server returned an invalid response (Check console).");
       }
 
@@ -350,7 +354,9 @@ export default function SymptomCheck({ token: propToken, onCheckComplete }) {
         {/* Sidebar user card */}
         <div className="mt-auto px-6 py-4 bg-[#CCFBF1] rounded-lg m-4 flex items-center gap-3">
           <div className="bg-[#0D9488] text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">
-            {user?.firstName && user?.lastName ? `${user.firstName[0]}${user.lastName[0]}` : 'U'}
+            {user?.firstName && user?.lastName
+              ? `${user.firstName[0]}${user.lastName[0]}`
+              : "U"}
           </div>
           <div>
             <div className="font-semibold text-[#0D9488]">
@@ -389,421 +395,430 @@ export default function SymptomCheck({ token: propToken, onCheckComplete }) {
           </div>
         </div>
 
-      {/* Step Indicator */}
-      {step < 3 && (
-        <div style={styles.steps}>
-          {[
-            { n: 1, label: "Symptoms" },
-            { n: 2, label: "Context" },
-          ].map(({ n, label }) => (
-            <div
-              key={n}
-              style={styles.stepItem}
-              onClick={() => step > n && setStep(n)}
-            >
+        {/* Step Indicator */}
+        {step < 3 && (
+          <div style={styles.steps}>
+            {[
+              { n: 1, label: "Symptoms" },
+              { n: 2, label: "Context" },
+            ].map(({ n, label }) => (
               <div
-                style={{
-                  ...styles.stepCircle,
-                  background: step >= n ? "#14B8A6" : "#E5E7EB",
-                  color: step >= n ? "#fff" : "#9CA3AF",
-                  cursor: step > n ? "pointer" : "default",
-                }}
+                key={n}
+                style={styles.stepItem}
+                onClick={() => step > n && setStep(n)}
               >
-                {step > n ? (
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                    <path
-                      d="M2 6L5 9L10 3"
-                      stroke="white"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                ) : (
-                  n
-                )}
-              </div>
-              <span
-                style={{
-                  ...styles.stepLabel,
-                  color: step >= n ? "#111827" : "#9CA3AF",
-                }}
-              >
-                {label}
-              </span>
-              {n < 2 && (
                 <div
                   style={{
-                    ...styles.stepLine,
-                    background: step > n ? "#14B8A6" : "#E5E7EB",
+                    ...styles.stepCircle,
+                    background: step >= n ? "#14B8A6" : "#E5E7EB",
+                    color: step >= n ? "#fff" : "#9CA3AF",
+                    cursor: step > n ? "pointer" : "default",
                   }}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Step 1: Symptoms */}
-      {step === 1 && (
-        <div style={styles.card}>
-          <label style={styles.label}>
-            <span style={styles.labelDot} />
-            What symptoms are you experiencing?
-          </label>
-          <p style={styles.hint}>
-            Type a symptom and press Enter, or pick from suggestions below
-          </p>
-
-          {/* Tag Input */}
-          <div
-            className="flex flex-wrap items-center gap-2 p-2 border border-gray-300 rounded-lg cursor-text focus-within:ring-2 focus-within:ring-teal-400 transition"
-            onClick={() => inputRef.current?.focus()}
-          >
-            {symptoms.map((s) => (
-              <span
-                key={s}
-                className="flex items-center gap-1 bg-teal-100 text-teal-700 px-2 py-1 rounded-full text-sm"
-              >
-                {s}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeSymptom(s);
-                  }}
-                  className="text-teal-600 hover:text-red-500 font-bold"
                 >
-                  ×
-                </button>
-              </span>
-            ))}
-
-            <input
-              ref={inputRef}
-              value={inputValue}
-              onChange={(e) => handleInputChange(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={
-                symptoms.length === 0
-                  ? "e.g. Headache, Fever..."
-                  : "Add more..."
-              }
-              className="flex-1 min-w-30 outline-none bg-transparent text-sm"
-            />
-          </div>
-
-          {/* Autocomplete */}
-          {suggestions.length > 0 && (
-            <div style={styles.suggestions}>
-              {suggestions.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => addSymptom(s)}
-                  style={styles.suggestionItem}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Quick picks */}
-          <div style={styles.quickPicks}>
-            <span style={styles.quickLabel}>Common:</span>
-            {SYMPTOM_SUGGESTIONS.slice(0, 8)
-              .filter((s) => !symptoms.includes(s))
-              .map((s) => (
-                <button
-                  key={s}
-                  onClick={() => addSymptom(s)}
-                  style={styles.quickPill}
-                >
-                  {s}
-                </button>
-              ))}
-          </div>
-
-          {error && <p style={styles.error}>{error}</p>}
-
-          <button
-            onClick={() => {
-              if (symptoms.length === 0) {
-                setError("Please add at least one symptom.");
-                return;
-              }
-              setError("");
-              setStep(2);
-            }}
-            style={styles.primaryBtn}
-          >
-            Continue →
-          </button>
-        </div>
-      )}
-
-      {/* Step 2: Context */}
-      {step === 2 && (
-        <div style={styles.card}>
-          <label style={styles.label}>
-            <span style={styles.labelDot} />
-            Patient Context{" "}
-            <span style={styles.optional}>(Optional but helpful)</span>
-          </label>
-
-          <div style={styles.row}>
-            <div style={styles.field}>
-              <label style={styles.fieldLabel}>Age</label>
-              <input
-                type="number"
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-                placeholder="e.g. 28"
-                min="0"
-                max="120"
-                style={styles.input}
-              />
-            </div>
-            <div style={styles.field}>
-              <label style={styles.fieldLabel}>Gender</label>
-              <select
-                value={gender}
-                onChange={(e) => setGender(e.target.value)}
-                style={styles.input}
-              >
-                <option value="">Prefer not to say</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-          </div>
-
-          <div style={{ marginTop: 16 }}>
-            <label style={styles.fieldLabel}>Additional Notes</label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Any relevant medical history, medications, allergies, or duration of symptoms..."
-              style={styles.textarea}
-              rows={3}
-            />
-          </div>
-
-          {/* Symptom review */}
-          <div style={styles.reviewBox}>
-            <p style={styles.reviewLabel}>Your symptoms:</p>
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 6,
-                marginTop: 6,
-              }}
-            >
-              {symptoms.map((s) => (
-                <span key={s} style={styles.reviewTag}>
-                  {s}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {error && <p style={styles.error}>{error}</p>}
-
-          <div style={styles.btnRow}>
-            <button onClick={() => setStep(1)} style={styles.secondaryBtn}>
-              ← Back
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              style={{ ...styles.primaryBtn, flex: 1 }}
-            >
-              {loading ? (
+                  {step > n ? (
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path
+                        d="M2 6L5 9L10 3"
+                        stroke="white"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  ) : (
+                    n
+                  )}
+                </div>
                 <span
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    justifyContent: "center",
+                    ...styles.stepLabel,
+                    color: step >= n ? "#111827" : "#9CA3AF",
                   }}
                 >
-                  <LoadingSpinner /> Analyzing with AI...
+                  {label}
                 </span>
-              ) : (
-                "Analyze Symptoms →"
-              )}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Step 3: Results */}
-      {step === 3 && result && (
-        <div ref={resultRef}>
-          {/* Urgency Banner */}
-          {urgency && (
-            <div
-              style={{
-                ...styles.urgencyBanner,
-                background: urgency.bg,
-                borderColor: urgency.color,
-              }}
-            >
-              <span style={styles.urgencyIcon}>{urgency.icon}</span>
-              <div>
-                <p style={{ ...styles.urgencyLabel, color: urgency.color }}>
-                  Urgency Level
-                </p>
-                <p style={{ ...styles.urgencyValue, color: urgency.color }}>
-                  {urgency.label}
-                </p>
+                {n < 2 && (
+                  <div
+                    style={{
+                      ...styles.stepLine,
+                      background: step > n ? "#14B8A6" : "#E5E7EB",
+                    }}
+                  />
+                )}
               </div>
-            </div>
-          )}
-
-          {/* Possible Conditions */}
-          <div style={styles.resultCard}>
-            <h3 style={styles.resultSectionTitle}>
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                style={{ marginRight: 6 }}
-              >
-                <circle
-                  cx="8"
-                  cy="8"
-                  r="7"
-                  stroke="#14B8A6"
-                  strokeWidth="1.5"
-                />
-                <path
-                  d="M8 5V8.5L10 10"
-                  stroke="#14B8A6"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                />
-              </svg>
-              Possible Conditions
-            </h3>
-            <div style={styles.conditionsList}>
-              {result.aiResponse?.possibleConditions?.map((c, i) => {
-                const sev = SEVERITY_CONFIG[c.severity] || SEVERITY_CONFIG.low;
-                return (
-                  <div key={i} style={styles.conditionItem}>
-                    <div style={styles.conditionHeader}>
-                      <span style={styles.conditionName}>{c.name}</span>
-                      <span
-                        style={{
-                          ...styles.severityBadge,
-                          background: sev.bg,
-                          color: sev.color,
-                        }}
-                      >
-                        {sev.label}
-                      </span>
-                    </div>
-                    <p style={styles.conditionDesc}>{c.description}</p>
-                  </div>
-                );
-              })}
-            </div>
+            ))}
           </div>
+        )}
 
-          {/* Recommended Specialties */}
-          <div style={styles.resultCard}>
-            <h3 style={styles.resultSectionTitle}>
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                style={{ marginRight: 6 }}
-              >
-                <path
-                  d="M8 1L10 5H15L11 8L13 13L8 10L3 13L5 8L1 5H6L8 1Z"
-                  stroke="#14B8A6"
-                  strokeWidth="1.5"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              Recommended Specialists
-            </h3>
-            <div style={styles.specialtiesRow}>
-              {result.aiResponse?.recommendedSpecialties?.map((s, i) => (
-                <span key={i} style={styles.specialtyChip}>
+        {/* Step 1: Symptoms */}
+        {step === 1 && (
+          <div style={styles.card}>
+            <label style={styles.label}>
+              <span style={styles.labelDot} />
+              What symptoms are you experiencing?
+            </label>
+            <p style={styles.hint}>
+              Type a symptom and press Enter, or pick from suggestions below
+            </p>
+
+            {/* Tag Input */}
+            <div
+              className="flex flex-wrap items-center gap-2 p-2 border border-gray-300 rounded-lg cursor-text focus-within:ring-2 focus-within:ring-teal-400 transition"
+              onClick={() => inputRef.current?.focus()}
+            >
+              {symptoms.map((s) => (
+                <span
+                  key={s}
+                  className="flex items-center gap-1 bg-teal-100 text-teal-700 px-2 py-1 rounded-full text-sm"
+                >
                   {s}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeSymptom(s);
+                    }}
+                    className="text-teal-600 hover:text-red-500 font-bold"
+                  >
+                    ×
+                  </button>
                 </span>
               ))}
+
+              <input
+                ref={inputRef}
+                value={inputValue}
+                onChange={(e) => handleInputChange(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={
+                  symptoms.length === 0
+                    ? "e.g. Headache, Fever..."
+                    : "Add more..."
+                }
+                className="flex-1 min-w-30 outline-none bg-transparent text-sm"
+              />
+            </div>
+
+            {/* Autocomplete */}
+            {suggestions.length > 0 && (
+              <div style={styles.suggestions}>
+                {suggestions.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => addSymptom(s)}
+                    style={styles.suggestionItem}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Quick picks */}
+            <div style={styles.quickPicks}>
+              <span style={styles.quickLabel}>Common:</span>
+              {SYMPTOM_SUGGESTIONS.slice(0, 8)
+                .filter((s) => !symptoms.includes(s))
+                .map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => addSymptom(s)}
+                    style={styles.quickPill}
+                  >
+                    {s}
+                  </button>
+                ))}
+            </div>
+
+            {error && <p style={styles.error}>{error}</p>}
+
+            <button
+              onClick={() => {
+                if (symptoms.length === 0) {
+                  setError("Please add at least one symptom.");
+                  return;
+                }
+                setError("");
+                setStep(2);
+              }}
+              style={styles.primaryBtn}
+            >
+              Continue
+            </button>
+          </div>
+        )}
+
+        {/* Step 2: Context */}
+        {step === 2 && (
+          <div style={styles.card}>
+            <label style={styles.label}>
+              <span style={styles.labelDot} />
+              Patient Context{" "}
+              <span style={styles.optional}>(Optional but helpful)</span>
+            </label>
+
+            <div style={styles.row}>
+              <div style={styles.field}>
+                <label style={styles.fieldLabel}>Age</label>
+                <input
+                  type="number"
+                  value={age}
+                  onChange={(e) => setAge(e.target.value)}
+                  placeholder="e.g. 28"
+                  min="0"
+                  max="120"
+                  style={styles.input}
+                />
+              </div>
+              <div style={styles.field}>
+                <label style={styles.fieldLabel}>Gender</label>
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  style={styles.input}
+                >
+                  <option value="">Prefer not to say</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 16 }}>
+              <label style={styles.fieldLabel}>Additional Notes</label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Any relevant medical history, medications, allergies, or duration of symptoms..."
+                style={styles.textarea}
+                rows={3}
+              />
+            </div>
+
+            {/* Symptom review */}
+            <div style={styles.reviewBox}>
+              <p style={styles.reviewLabel}>Your symptoms:</p>
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 6,
+                  marginTop: 6,
+                }}
+              >
+                {symptoms.map((s) => (
+                  <span key={s} style={styles.reviewTag}>
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {error && <p style={styles.error}>{error}</p>}
+
+            <div style={styles.btnRow}>
+              <button onClick={() => setStep(1)} style={styles.secondaryBtn}>
+                Back
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                style={{ ...styles.primaryBtn, flex: 1 }}
+              >
+                {loading ? (
+                  <span
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      justifyContent: "center",
+                    }}
+                  >
+                    <LoadingSpinner /> Analyzing with AI...
+                  </span>
+                ) : (
+                  "Analyze Symptoms "
+                )}
+              </button>
             </div>
           </div>
+        )}
 
-          {/* General Advice */}
-          <div style={styles.resultCard}>
-            <h3 style={styles.resultSectionTitle}>
+        {/* Step 3: Results */}
+        {step === 3 && result && (
+          <div ref={resultRef}>
+            {/* Urgency Banner */}
+            {urgency && (
+              <div
+                style={{
+                  ...styles.urgencyBanner,
+                  background: urgency.bg,
+                  borderColor: urgency.color,
+                }}
+              >
+                <span style={styles.urgencyIcon}>{urgency.icon}</span>
+                <div>
+                  <p style={{ ...styles.urgencyLabel, color: urgency.color }}>
+                    Urgency Level
+                  </p>
+                  <p style={{ ...styles.urgencyValue, color: urgency.color }}>
+                    {urgency.label}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Possible Conditions */}
+            <div style={styles.resultCard}>
+              <h3 style={styles.resultSectionTitle}>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  style={{ marginRight: 6 }}
+                >
+                  <circle
+                    cx="8"
+                    cy="8"
+                    r="7"
+                    stroke="#14B8A6"
+                    strokeWidth="1.5"
+                  />
+                  <path
+                    d="M8 5V8.5L10 10"
+                    stroke="#14B8A6"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                Possible Conditions
+              </h3>
+              <div style={styles.conditionsList}>
+                {result.aiResponse?.possibleConditions?.map((c, i) => {
+                  const sev =
+                    SEVERITY_CONFIG[c.severity] || SEVERITY_CONFIG.low;
+                  return (
+                    <div key={i} style={styles.conditionItem}>
+                      <div style={styles.conditionHeader}>
+                        <span style={styles.conditionName}>{c.name}</span>
+                        <span
+                          style={{
+                            ...styles.severityBadge,
+                            background: sev.bg,
+                            color: sev.color,
+                          }}
+                        >
+                          {sev.label}
+                        </span>
+                      </div>
+                      <p style={styles.conditionDesc}>{c.description}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Recommended Specialties */}
+            <div style={styles.resultCard}>
+              <h3 style={styles.resultSectionTitle}>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  style={{ marginRight: 6 }}
+                >
+                  <path
+                    d="M8 1L10 5H15L11 8L13 13L8 10L3 13L5 8L1 5H6L8 1Z"
+                    stroke="#14B8A6"
+                    strokeWidth="1.5"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                Recommended Specialists
+              </h3>
+              <div style={styles.specialtiesRow}>
+                {result.aiResponse?.recommendedSpecialties?.map((s, i) => (
+                  <span key={i} style={styles.specialtyChip}>
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* General Advice */}
+            <div style={styles.resultCard}>
+              <h3 style={styles.resultSectionTitle}>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  style={{ marginRight: 6 }}
+                >
+                  <path
+                    d="M8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14Z"
+                    stroke="#14B8A6"
+                    strokeWidth="1.5"
+                  />
+                  <path
+                    d="M8 7V11M8 5H8.01"
+                    stroke="#14B8A6"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                General Advice
+              </h3>
+              <p style={styles.adviceText}>
+                {result.aiResponse?.generalAdvice}
+              </p>
+            </div>
+
+            {/* Disclaimer */}
+            <div style={styles.disclaimer}>
               <svg
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
+                width="14"
+                height="14"
+                viewBox="0 0 14 14"
                 fill="none"
-                style={{ marginRight: 6 }}
+                style={{ flexShrink: 0, marginTop: 2 }}
               >
                 <path
-                  d="M8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14Z"
-                  stroke="#14B8A6"
-                  strokeWidth="1.5"
+                  d="M7 13A6 6 0 1 0 7 1a6 6 0 0 0 0 12z"
+                  stroke="#9CA3AF"
+                  strokeWidth="1.2"
                 />
                 <path
-                  d="M8 7V11M8 5H8.01"
-                  stroke="#14B8A6"
-                  strokeWidth="1.5"
+                  d="M7 6V9M7 4.5H7.01"
+                  stroke="#9CA3AF"
+                  strokeWidth="1.2"
                   strokeLinecap="round"
                 />
               </svg>
-              General Advice
-            </h3>
-            <p style={styles.adviceText}>{result.aiResponse?.generalAdvice}</p>
-          </div>
+              <p style={styles.disclaimerText}>
+                {result.aiResponse?.disclaimer}
+              </p>
+            </div>
 
-          {/* Disclaimer */}
-          <div style={styles.disclaimer}>
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 14 14"
-              fill="none"
-              style={{ flexShrink: 0, marginTop: 2 }}
-            >
-              <path
-                d="M7 13A6 6 0 1 0 7 1a6 6 0 0 0 0 12z"
-                stroke="#9CA3AF"
-                strokeWidth="1.2"
-              />
-              <path
-                d="M7 6V9M7 4.5H7.01"
-                stroke="#9CA3AF"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-              />
-            </svg>
-            <p style={styles.disclaimerText}>{result.aiResponse?.disclaimer}</p>
-          </div>
+            <div style={styles.btnRow}>
+              <button
+                onClick={reset}
+                style={{ ...styles.secondaryBtn, height: "45px", width: "250px" }}
+              >
+                New Check
+              </button>
 
-          <div style={styles.btnRow}>
-            <button onClick={reset} style={styles.secondaryBtn}>
-              New Check
-            </button>
-            <button
-              onClick={() => (window.location.href = "/appointments/book")}
-              style={styles.primaryBtn}
-            >
-              Book Appointment →
-            </button>
+              <button
+                onClick={() => navigate("/patient/appointments")}
+                style={{ ...styles.primaryBtn, height: "45px", width: "350px" }}
+              >
+                Book Appointment
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
     </div>
   );

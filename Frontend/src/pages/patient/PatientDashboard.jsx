@@ -164,15 +164,12 @@ const PatientDashboard = () => {
                 Dashboard
               </a>
             </li>
-            {/* Inactive nav items */}
-            <li>
-              <a
-                href="#"
-                className="flex items-center gap-3 px-3 py-2 text-[#6B7280]"
-              >
-                <Calendar size={18} className="text-[#6B7280]" />
-                Appointments
-              </a>
+            <li
+              onClick={() => navigate("/patient/appointments")}
+              className="flex items-center gap-3 px-3 py-2 text-[#6B7280] hover:bg-[#CCFBF1] rounded-lg cursor-pointer"
+            >
+              <Calendar size={18} />
+              Appointments
             </li>
             <li>
               <a
