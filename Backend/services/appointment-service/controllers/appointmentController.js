@@ -7,7 +7,7 @@ const sendNotification = async (type, appointment) => {
       `${process.env.NOTIFICATION_SERVICE_URL}/api/notifications/${type}`,
       {
         patientEmail: "patient@gmail.com", // temp
-        patientName: "Patient",
+        patientName: `${appointment.firstName} ${appointment.lastName}`,
         doctorName: "Dr. " + appointment.doctorId,
         appointmentId: appointment._id,
         date: appointment.date,
@@ -24,16 +24,27 @@ const sendNotification = async (type, appointment) => {
 export const bookAppointment = async (req, res) => {
   try {
     const { doctorId, date, timeSlot, reason } = req.body;
-    const patientId = req.body.patientId || (req.user && req.user.id);
+    
+    // Get patient info from the authenticated user (from token)
+    const patientId = req.user.id;
+    const firstName = req.user.firstName;
+    const lastName = req.user.lastName;
 
     if (!patientId || !doctorId || !date || !timeSlot) {
       return res.status(400).json({
-        message: "patientId, doctorId, date, and timeSlot are required",
+        message: "doctorId, date, and timeSlot are required",
+      });
+    }
+
+    if (!firstName || !lastName) {
+      return res.status(400).json({
+        message: "User profile missing first name or last name",
       });
     }
 
     const checkDate = new Date(date);
 
+    // Check for doctor conflict
     const doctorConflict = await Appointment.findOne({
       doctorId,
       date: checkDate,
@@ -45,6 +56,7 @@ export const bookAppointment = async (req, res) => {
       return res.status(400).json({ message: "Doctor already has a booking at this time" });
     }
 
+    // Check for patient conflict
     const patientConflict = await Appointment.findOne({
       patientId,
       date: checkDate,
@@ -56,12 +68,16 @@ export const bookAppointment = async (req, res) => {
       return res.status(400).json({ message: "You already have an appointment at this time" });
     }
 
+    // Create appointment with status "pending"
     const appointment = await Appointment.create({
       patientId,
+      firstName,
+      lastName,
       doctorId,
       date: checkDate,
       timeSlot,
       reason: reason || "",
+      status: "pending",
     });
 
     res.status(201).json({
@@ -69,6 +85,7 @@ export const bookAppointment = async (req, res) => {
       appointment,
     });
   } catch (error) {
+    console.error("Book appointment error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -84,24 +101,34 @@ export const getAppointmentById = async (req, res) => {
       return res.status(404).json({ message: "Appointment not found" });
     }
 
-    res.status(200).json(appointment);
+    const appointmentWithName = {
+      ...appointment.toObject(),
+      patientName: `${appointment.firstName} ${appointment.lastName}`,
+    };
+
+    res.status(200).json(appointmentWithName);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-
-
 
 // ────────────────────────────────────────────────────
 // Patient appointments
 // ────────────────────────────────────────────────────
 export const getPatientAppointments = async (req, res) => {
   try {
+    const patientId = req.user?.id || req.params.patientId;
+    
     const appointments = await Appointment.find({
-      patientId: req.params.patientId,
+      patientId: patientId,
     }).sort({ date: -1 });
 
-    res.status(200).json(appointments);
+    const enrichedAppointments = appointments.map(apt => ({
+      ...apt.toObject(),
+      patientName: `${apt.firstName} ${apt.lastName}`,
+    }));
+
+    res.status(200).json(enrichedAppointments);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
@@ -114,16 +141,26 @@ export const getDoctorAppointments = async (req, res) => {
   try {
     const appointments = await Appointment.find({
       doctorId: req.params.doctorId,
-    }).sort({ date: 1 });
+    })
+      .sort({ date: 1 })
+      .lean();
 
-    res.status(200).json(appointments);
+    const enrichedAppointments = appointments.map(apt => ({
+      ...apt,
+      patientName: `${apt.firstName || ''} ${apt.lastName || ''}`.trim() || "Unknown Patient",
+    }));
+    
+    res.status(200).json(enrichedAppointments);
   } catch (error) {
+    console.error("Error in getDoctorAppointments:", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
 // ────────────────────────────────────────────────────
 // Cancel appointment
+// Allowed in: pending, accepted, rescheduled states only
+// Not allowed in: confirmed, completed
 // ────────────────────────────────────────────────────
 export const cancelAppointment = async (req, res) => {
   try {
@@ -133,14 +170,35 @@ export const cancelAppointment = async (req, res) => {
       return res.status(404).json({ message: "Appointment not found" });
     }
 
-    if (["completed", "confirmed"].includes(appointment.status)) {
+    // Check authorization - patient or doctor can cancel
+    if (req.user.role === "patient" && appointment.patientId !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized to cancel this appointment" });
+    }
+
+    // Cannot cancel in confirmed or completed states
+    if (appointment.status === "confirmed") {
       return res.status(400).json({
-        message: `Cannot cancel a ${appointment.status} appointment`,
+        message: "Cannot cancel a confirmed appointment. Please contact support.",
+      });
+    }
+
+    if (appointment.status === "completed") {
+      return res.status(400).json({
+        message: "Cannot cancel a completed appointment",
+      });
+    }
+
+    // Allow cancellation only in these states
+    if (!["pending", "accepted", "rescheduled"].includes(appointment.status)) {
+      return res.status(400).json({
+        message: `Cannot cancel appointment in ${appointment.status} state`,
       });
     }
 
     appointment.status = "cancelled";
     await appointment.save();
+
+    await sendNotification("cancelled", appointment);
 
     res.status(200).json({
       message: "Appointment cancelled successfully",
@@ -153,6 +211,7 @@ export const cancelAppointment = async (req, res) => {
 
 // ────────────────────────────────────────────────────
 // Reschedule
+// Allowed only in: pending state
 // ────────────────────────────────────────────────────
 export const rescheduleAppointment = async (req, res) => {
   try {
@@ -170,7 +229,32 @@ export const rescheduleAppointment = async (req, res) => {
       return res.status(404).json({ message: "Appointment not found" });
     }
 
+    // Check authorization - only patient can reschedule
+    if (req.user.role !== "patient" || appointment.patientId !== req.user.id) {
+      return res.status(403).json({ message: "Only the patient can reschedule this appointment" });
+    }
+
+    // Only pending appointments can be rescheduled
+    if (appointment.status !== "pending") {
+      return res.status(400).json({
+        message: `Cannot reschedule appointment in ${appointment.status} state. Only pending appointments can be rescheduled.`,
+      });
+    }
+
     const checkDate = new Date(newDate);
+
+    // Check for conflicts with new time
+    const doctorConflict = await Appointment.findOne({
+      doctorId: appointment.doctorId,
+      date: checkDate,
+      timeSlot: newTimeSlot,
+      status: { $in: ["pending", "accepted", "confirmed", "rescheduled"] },
+      _id: { $ne: appointment._id }
+    });
+
+    if (doctorConflict) {
+      return res.status(400).json({ message: "Doctor already has a booking at this time" });
+    }
 
     appointment.date = checkDate;
     appointment.timeSlot = newTimeSlot;
@@ -178,15 +262,14 @@ export const rescheduleAppointment = async (req, res) => {
 
     await appointment.save();
 
-    // 🔔 Send notification
-    await axios.post("http://localhost:5003/api/notifications/rescheduled", {
+    await axios.post(`${process.env.NOTIFICATION_SERVICE_URL}/api/notifications/rescheduled`, {
       patientEmail: "patient@gmail.com",
-      patientName: "Patient",
+      patientName: `${appointment.firstName} ${appointment.lastName}`,
       doctorName: "Dr. " + appointment.doctorId,
       appointmentId: appointment._id,
       date: appointment.date,
       time: appointment.timeSlot
-    });
+    }).catch(err => console.error("Notification error:", err.message));
 
     res.status(200).json({
       message: "Appointment rescheduled successfully",
@@ -199,9 +282,10 @@ export const rescheduleAppointment = async (req, res) => {
 };
 
 // ────────────────────────────────────────────────────
-// Confirm (Doctor accept)
+// Doctor Accept Appointment
+// Changes status from pending/rescheduled to accepted
 // ────────────────────────────────────────────────────
-export const confirmAppointment = async (req, res) => {
+export const acceptAppointment = async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id);
 
@@ -209,21 +293,24 @@ export const confirmAppointment = async (req, res) => {
       return res.status(404).json({ message: "Appointment not found" });
     }
 
+    // Only doctor can accept
+    if (req.user.role !== "doctor") {
+      return res.status(403).json({ message: "Only doctors can accept appointments" });
+    }
+
+    // Only pending or rescheduled appointments can be accepted
     if (!["pending", "rescheduled"].includes(appointment.status)) {
       return res.status(400).json({
-        message: "Only pending or rescheduled appointments can be confirmed",
+        message: `Cannot accept appointment in ${appointment.status} state. Only pending or rescheduled appointments can be accepted.`,
       });
     }
 
-    // ✅ Update status
-    appointment.status = "confirmed";
+    appointment.status = "accepted";
     await appointment.save();
-    await sendNotification("confirmed", appointment);
+    await sendNotification("accepted", appointment);
 
-    // 🔔 Send notification
-  
     res.status(200).json({
-      message: "Appointment confirmed",
+      message: "Appointment accepted. Awaiting payment confirmation.",
       appointment,
     });
 
@@ -234,56 +321,47 @@ export const confirmAppointment = async (req, res) => {
 };
 
 // ────────────────────────────────────────────────────
-// Payment confirm
+// Confirm Payment
+// Changes status from accepted to confirmed
 // ────────────────────────────────────────────────────
 export const confirmPayment = async (req, res) => {
   try {
-    console.log("Confirm payment called for appointment:", req.params.id);
-    console.log("User:", req.user);
-    console.log("Headers:", req.headers.authorization);
-
     const appointment = await Appointment.findById(req.params.id);
 
     if (!appointment) {
-      console.log("Appointment not found");
       return res.status(404).json({ message: "Appointment not found" });
     }
 
-    console.log("Current appointment status:", appointment.status);
-    console.log("Appointment data:", {
-      patientId: appointment.patientId,
-      doctorId: appointment.doctorId,
-      date: appointment.date,
-      timeSlot: appointment.timeSlot
-    });
+    // Only the patient who booked can confirm payment
+    if (appointment.patientId !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized to confirm payment for this appointment" });
+    }
 
-    // For debugging, allow confirmation regardless of status
-    // if (appointment.status !== "accepted") {
-    //   console.log("Appointment status is not accepted");
-    //   return res.status(400).json({
-    //     message: "Payment only after acceptance",
-    //   });
-    // }
+    // Only accepted appointments can be paid for
+    if (appointment.status !== "accepted") {
+      return res.status(400).json({
+        message: `Cannot process payment for appointment in ${appointment.status} state. Appointment must be accepted by doctor first.`,
+      });
+    }
 
     appointment.status = "confirmed";
     await appointment.save();
     await sendNotification("confirmed", appointment);
 
-
-    console.log("Appointment confirmed successfully");
-
     res.status(200).json({
-      message: "Payment confirmed",
+      message: "Payment confirmed. Appointment is now confirmed.",
       appointment,
     });
+
   } catch (error) {
     console.error("Confirm payment error:", error.message);
     res.status(500).json({ message: error.message });
   }
-};;
+};
 
 // ────────────────────────────────────────────────────
-// Complete
+// Complete Appointment (after video session)
+// Changes status from confirmed to completed
 // ────────────────────────────────────────────────────
 export const completeAppointment = async (req, res) => {
   try {
@@ -293,9 +371,15 @@ export const completeAppointment = async (req, res) => {
       return res.status(404).json({ message: "Appointment not found" });
     }
 
+    // Doctor can complete, or system can auto-complete after session
+    if (req.user && req.user.role === "doctor" && appointment.doctorId !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized to complete this appointment" });
+    }
+
+    // Only confirmed appointments can be completed
     if (appointment.status !== "confirmed") {
       return res.status(400).json({
-        message: "Only confirmed appointments can be completed",
+        message: `Cannot complete appointment in ${appointment.status} state. Only confirmed appointments can be completed.`,
       });
     }
 
@@ -303,7 +387,7 @@ export const completeAppointment = async (req, res) => {
     await appointment.save();
 
     res.status(200).json({
-      message: "Completed",
+      message: "Appointment completed successfully",
       appointment,
     });
   } catch (error) {
@@ -311,13 +395,107 @@ export const completeAppointment = async (req, res) => {
   }
 };
 
+// ────────────────────────────────────────────────────
+// Reject Appointment (by doctor)
+// ────────────────────────────────────────────────────
+export const rejectAppointment = async (req, res) => {
+  try {
+    const appointment = await Appointment.findById(req.params.id);
+
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    // Only doctor can reject
+    if (req.user.role !== "doctor") {
+      return res.status(403).json({ message: "Only doctors can reject appointments" });
+    }
+
+    // Cannot reject completed or confirmed appointments
+    if (["completed", "confirmed", "cancelled"].includes(appointment.status)) {
+      return res.status(400).json({
+        message: `Cannot reject a ${appointment.status} appointment`
+      });
+    }
+
+    // Only pending or rescheduled appointments can be rejected
+    if (!["pending", "rescheduled"].includes(appointment.status)) {
+      return res.status(400).json({
+        message: "Only pending or rescheduled appointments can be rejected"
+      });
+    }
+
+    appointment.status = "rejected";
+    await appointment.save();
+    await sendNotification("rejected", appointment);
+
+    res.status(200).json({
+      message: "Appointment rejected successfully",
+      appointment
+    });
+
+  } catch (error) {
+    console.error("Reject error:", error.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ────────────────────────────────────────────────────
+// Get appointment status (helper)
+// ────────────────────────────────────────────────────
+export const getAppointmentStatus = async (req, res) => {
+  try {
+    const appointment = await Appointment.findById(req.params.id);
+
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    const statusInfo = {
+      status: appointment.status,
+      canCancel: ["pending", "accepted", "rescheduled"].includes(appointment.status),
+      canReschedule: appointment.status === "pending",
+      canPay: appointment.status === "accepted",
+      canJoin: appointment.status === "confirmed",
+      canComplete: appointment.status === "confirmed",
+      message: ""
+    };
+
+    if (appointment.status === "pending") {
+      statusInfo.message = "Waiting for doctor to accept";
+    } else if (appointment.status === "accepted") {
+      statusInfo.message = "Doctor accepted. Please complete payment to confirm.";
+    } else if (appointment.status === "confirmed") {
+      statusInfo.message = "Payment confirmed. Join the session at scheduled time.";
+    } else if (appointment.status === "completed") {
+      statusInfo.message = "Appointment completed";
+    } else if (appointment.status === "cancelled") {
+      statusInfo.message = "Appointment cancelled";
+    } else if (appointment.status === "rejected") {
+      statusInfo.message = "Appointment rejected by doctor";
+    }
+
+    res.status(200).json(statusInfo);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// ────────────────────────────────────────────────────
+// Get appointments by status
+// ────────────────────────────────────────────────────
 export const getAppointmentsByStatus = async (req, res) => {
   try {
     const { status } = req.params;
 
     const appointments = await Appointment.find({ status }).sort({ date: -1 });
 
-    res.status(200).json(appointments);
+    const enrichedAppointments = appointments.map(apt => ({
+      ...apt.toObject(),
+      patientName: `${apt.firstName} ${apt.lastName}`,
+    }));
+
+    res.status(200).json(enrichedAppointments);
   } catch (error) {
     console.error("Error fetching appointments by status:", error.message);
     res.status(500).json({ message: "Server error" });
@@ -326,11 +504,18 @@ export const getAppointmentsByStatus = async (req, res) => {
 
 export const deleteAppointment = async (req, res) => {
   try {
-    const appointment = await Appointment.findByIdAndDelete(req.params.id);
+    const appointment = await Appointment.findById(req.params.id);
 
     if (!appointment) {
       return res.status(404).json({ message: "Appointment not found" });
     }
+
+    // Only admin can delete appointments
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Not authorized to delete appointments" });
+    }
+
+    await Appointment.findByIdAndDelete(req.params.id);
 
     res.status(200).json({
       message: "Appointment deleted successfully",
@@ -345,9 +530,14 @@ export const getAllAppointments = async (req, res) => {
   try {
     const appointments = await Appointment.find().sort({ date: -1 });
 
+    const enrichedAppointments = appointments.map(apt => ({
+      ...apt.toObject(),
+      patientName: `${apt.firstName || ''} ${apt.lastName || ''}`.trim() || "Unknown Patient",
+    }));
+
     res.status(200).json({
       count: appointments.length,
-      appointments,
+      appointments: enrichedAppointments,
     });
   } catch (error) {
     console.error("Get all error:", error.message);
@@ -368,15 +558,14 @@ export const getAvailableSlots = async (req, res) => {
 
     const checkDate = new Date(date);
 
-    // Get all booked slots for this doctor on that date
     const bookedAppointments = await Appointment.find({
       doctorId,
-      date: checkDate
+      date: checkDate,
+      status: { $in: ["pending", "accepted", "confirmed", "rescheduled"] }
     });
 
     const bookedSlots = bookedAppointments.map(app => app.timeSlot);
 
-    // Example fixed time slots (you can change this later)
     const allSlots = [
       "09:00 AM",
       "10:00 AM",
@@ -388,7 +577,6 @@ export const getAvailableSlots = async (req, res) => {
       "05:00 PM"
     ];
 
-    // Filter available slots
     const availableSlots = allSlots.filter(
       slot => !bookedSlots.includes(slot)
     );
@@ -405,41 +593,6 @@ export const getAvailableSlots = async (req, res) => {
   }
 };
 
-export const rejectAppointment = async (req, res) => {
-  try {
-    const appointment = await Appointment.findById(req.params.id);
-
-    if (!appointment) {
-      return res.status(404).json({ message: "Appointment not found" });
-    }
-
-    // Only allow rejection in valid states
-    if (["completed", "cancelled"].includes(appointment.status)) {
-      return res.status(400).json({
-        message: `Cannot reject a ${appointment.status} appointment`
-      });
-    }
-
-    // Optional rule: only pending/rescheduled can be rejected
-    if (!["pending", "rescheduled"].includes(appointment.status)) {
-      return res.status(400).json({
-        message: "Only pending or rescheduled appointments can be rejected"
-      });
-    }
-
-    appointment.status = "rejected";
-    await appointment.save();
-
-    res.status(200).json({
-      message: "Appointment rejected successfully",
-      appointment
-    });
-
-  } catch (error) {
-    console.error("Reject error:", error.message);
-    res.status(500).json({ message: "Server error" });
-  }
-};
 export const updateAppointment = async (req, res) => {
   try {
     const appointmentId = req.params.id;
@@ -450,14 +603,17 @@ export const updateAppointment = async (req, res) => {
       return res.status(404).json({ message: "Appointment not found" });
     }
 
-    // Only allow updates in safe states
-    if (["completed", "cancelled", "rejected"].includes(appointment.status)) {
+    // Check authorization
+    if (req.user.role === "patient" && appointment.patientId !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized to update this appointment" });
+    }
+
+    if (["completed", "cancelled", "rejected", "confirmed"].includes(appointment.status)) {
       return res.status(400).json({
         message: `Cannot update a ${appointment.status} appointment`
       });
     }
 
-    // Allowed fields to update (safe update)
     const allowedUpdates = ["reason", "notes"];
 
     allowedUpdates.forEach((field) => {
@@ -478,3 +634,7 @@ export const updateAppointment = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// Note: confirmAppointment is renamed to acceptAppointment to better reflect the workflow
+// Keep both for backward compatibility
+export const confirmAppointment = acceptAppointment;

@@ -1,11 +1,12 @@
 import { useState } from "react";
 import PatientManagement from "./PatientManagement";
+import DoctorManagement from "./DoctorManegement";
 import { useNavigate } from "react-router-dom";
 
 const TABS = [
   { id: "overview", icon: "⚡", label: "Overview" },
   { id: "patients", icon: "🧑‍🤝‍🧑", label: "Patient Management" },
-  { id: "doctors", icon: "🩺", label: "Doctor Verification", badge: "3" },
+  { id: "doctors", icon: "🩺", label: "Doctor Management" },
   { id: "appointments", icon: "📅", label: "Appointments" },
   { id: "payments", icon: "💳", label: "Payment Management" },
   { id: "notifications", icon: "🔔", label: "Notifications", badge: "5" },
@@ -60,9 +61,9 @@ const CHART_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "S
 
 function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
-  const [doctorList, setDoctorList] = useState(DOCTORS);
   const [allUsers] = useState(USERS);
   const [userList, setUserList] = useState(USERS.filter((u) => u.role !== "Patient"));
+  const [doctorList, setDoctorList] = useState(USERS.filter((u) => u.role === "Doctor"));
   const navigate = useNavigate();
 
   const handleVerify = (name, action) => {
@@ -295,56 +296,7 @@ function AdminDashboard() {
         {activeTab === "patients" && <PatientManagement />}
 
         {/* DOCTOR VERIFICATION TAB */}
-        {activeTab === "doctors" && (
-          <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-white/10 flex justify-between items-center">
-              <div className="font-syne text-sm font-bold">🩺 Doctor Verification Queue ({doctorList.length})</div>
-              <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">⚠️ {doctorList.length} Pending</span>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="text-left text-[11px] tracking-wide uppercase text-white/30 font-semibold border-b border-white/5">
-                  <tr>
-                    <th className="px-3 py-2">Doctor</th>
-                    <th className="px-3 py-2">Specialty</th>
-                    <th className="px-3 py-2">Hospital</th>
-                    <th className="px-3 py-2">Documents</th>
-                    <th className="px-3 py-2">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {doctorList.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="text-center py-10 text-white/30">✅ All doctors have been verified!</td>
-                    </tr>
-                  ) : (
-                    doctorList.map((d, i) => (
-                      <tr key={i} className="border-b border-white/5 last:border-0 hover:bg-white/5">
-                        <td className="px-3 py-3">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold" style={{ background: `${d.color}22`, color: d.color }}>{d.avatar}</div>
-                            <div className="text-sm font-medium">{d.name}</div>
-                          </div>
-                        </td>
-                        <td className="px-3 py-3 text-white/60 text-sm">{d.specialty}</td>
-                        <td className="px-3 py-3 text-white/45 text-xs">{d.hospital}</td>
-                        <td className="px-3 py-3">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${statusBadge(d.docs)}`}>
-                            {d.docs === "Uploaded" ? "📎 Uploaded" : "⏳ Pending"}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3">
-                          <button className="px-3 py-1 rounded-lg text-xs font-semibold bg-green-500/15 text-green-400 border border-green-500/25 hover:bg-green-500/25 mr-1" onClick={() => handleVerify(d.name, "approve")}>✓ Approve</button>
-                          <button className="px-3 py-1 rounded-lg text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20" onClick={() => handleVerify(d.name, "reject")}>✕ Reject</button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        {activeTab === "doctors" && <DoctorManagement />}
 
         {/* APPOINTMENTS TAB */}
         {activeTab === "appointments" && (
