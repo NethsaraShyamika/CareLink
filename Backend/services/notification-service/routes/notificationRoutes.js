@@ -5,7 +5,9 @@ import {
     appointmentCancelled,
     getAllNotifications,
     getNotificationsByEmail,
-    sendReminder
+    sendReminder,
+    appointmentConfirmed,
+    appointmentRescheduled
 } from "../controllers/notificationController.js";
 
 const router = express.Router();
@@ -16,5 +18,7 @@ router.post("/appointment-cancelled", appointmentCancelled);
 router.get("/all", getAllNotifications);
 router.get("/email/:email", getNotificationsByEmail);
 router.post("/reminder", sendReminder);
+router.post("/notifications/confirmed", appointmentConfirmed);
+router.post("/notifications/rescheduled", appointmentRescheduled);
 
 export default router;
