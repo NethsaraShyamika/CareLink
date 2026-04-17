@@ -18,7 +18,7 @@ app.use(
 const routes = {
   "/api/patients": "http://localhost:3001",
   "/api/doctors": "http://localhost:3002",
-  "/api/appointments": "http://localhost:3003",
+  "/api/appointments": "http://localhost:5002",
   "/api/telemedicines": "http://localhost:3004",
   "/api/payments": "http://localhost:3005",
   "/api/notifications": "http://localhost:3006",
