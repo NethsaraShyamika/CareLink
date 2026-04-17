@@ -1,6 +1,7 @@
 import express from "express";
 import {
     appointmentBooked,
+    appointmentAccepted,
     consultationCompleted,
     appointmentCancelled,
     getAllNotifications,
@@ -13,6 +14,7 @@ import {
 const router = express.Router();
 
 router.post("/appointment-booked", appointmentBooked);
+router.post("/appointment-accepted", appointmentAccepted);
 router.post("/consultation-completed", consultationCompleted);
 router.post("/appointment-cancelled", appointmentCancelled);
 router.get("/all", getAllNotifications);

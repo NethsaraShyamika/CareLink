@@ -53,12 +53,18 @@ const generateVideoLink = (appointmentId, role = "patient") => {
 // ==================== EXISTING EMAIL FUNCTIONS (unchanged) ====================
 // Send Email
 const sendEmail = async (recipientEmail, recipientName, subject, html) => {
-    await transporter.sendMail({
-        from: `"HealthCare Platform" <${process.env.EMAIL_USER}>`,
-        to: recipientEmail,
-        subject: subject,
-        html: html,
-    });
+    try {
+        await transporter.sendMail({
+            from: `"HealthCare Platform" <${process.env.EMAIL_USER}>`,
+            to: recipientEmail,
+            subject: subject,
+            html: html,
+        });
+        console.log(`Email successfully sent to ${recipientEmail}`);
+    } catch (error) {
+        console.error(`Failed to send email to ${recipientEmail}:`, error.message);
+        // Do not throw so that WhatsApp and database savings can still proceed
+    }
 };
 
 // Appointment Booked Notification (ENHANCED with WhatsApp)
@@ -111,6 +117,74 @@ export const appointmentBooked = async (req, res) => {
         await sendWhatsApp(doctorPhone, doctorWhatsAppMsg);
 
         return res.status(200).json({ message: "Email and WhatsApp notifications sent successfully to doctor and patient" });
+
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+};
+
+// Appointment Accepted Notification (Doctor accepted, awaiting payment)
+export const appointmentAccepted = async (req, res) => {
+    try {
+        const { 
+            doctorEmail, doctorName, doctorPhone,
+            patientEmail, patientName, patientPhone,
+            appointmentId, date, time
+        } = req.body;
+
+        if (!doctorEmail || !doctorName || !patientEmail || !patientName || !appointmentId) {
+            return res.status(400).json({ error: "Required fields are missing" });
+        }
+
+        // ----- PATIENT NOTIFICATIONS -----
+        await sendEmail(
+            patientEmail,
+            patientName,
+            "✅ Appointment Accepted - Awaiting Payment",
+            `
+            <p>Hi ${patientName},</p>
+            <p>Your appointment request <strong>${appointmentId}</strong> has been <strong>accepted</strong> by Dr. ${doctorName}.</p>
+            <p><strong>Date:</strong> ${date}</p>
+            <p><strong>Time:</strong> ${time}</p>
+            <br/>
+            <p><strong>Please log in to your dashboard and complete the payment to fully secure and confirm your appointment.</strong></p>
+            <p>Your video consultation link will be provided immediately once the payment is successful.</p>
+            `
+        );
+        await new Notification({ 
+            recipientEmail: patientEmail, recipientName: patientName, 
+            subject: "Appointment Accepted", 
+            message: `Your appointment ${appointmentId} was accepted by Dr. ${doctorName}. Please complete the payment.`, 
+            type: "appointment_accepted", status: "sent" 
+        }).save();
+
+        const patientWhatsAppMsg = `✨ *Appointment Accepted*\n\nHi ${patientName},\nDr. ${doctorName} has accepted your appointment on ${date} at ${time}.\n\n*Action Required*: Please log in to complete the payment. You will receive the video consultation link once payment is processed.`;
+        await sendWhatsApp(patientPhone, patientWhatsAppMsg);
+
+        // ----- DOCTOR NOTIFICATIONS -----
+        await sendEmail(
+            doctorEmail,
+            doctorName,
+            "✅ Appointment Accepted",
+            `
+            <p>Hi Dr. ${doctorName},</p>
+            <p>You have successfully accepted the appointment <strong>${appointmentId}</strong> for patient ${patientName}.</p>
+            <p><strong>Date:</strong> ${date}</p>
+            <p><strong>Time:</strong> ${time}</p>
+            <p>The patient has been notified to complete the payment. Both of you will receive the join link once payment is made.</p>
+            `
+        );
+        await new Notification({ 
+            recipientEmail: doctorEmail, recipientName: doctorName, 
+            subject: "Appointment Accepted", 
+            message: `You accepted appointment ${appointmentId} for patient ${patientName}.`, 
+            type: "appointment_accepted", status: "sent" 
+        }).save();
+
+        const doctorWhatsAppMsg = `✅ *Appointment Accepted*\n\nDr. ${doctorName},\nYou successfully accepted the appointment with ${patientName} for ${date} at ${time}. The patient is instructed to complete the payment.`;
+        await sendWhatsApp(doctorPhone, doctorWhatsAppMsg);
+
+        return res.status(200).json({ message: "Accepted notifications sent successfully" });
 
     } catch (error) {
         return res.status(500).json({ error: error.message });
@@ -269,26 +343,75 @@ export const sendReminder = async (req, res) => {
 
 export const appointmentConfirmed = async (req, res) => {
   try {
-    const { patientEmail, patientName, appointmentId, date, time } = req.body;
+    const { 
+      patientEmail, patientName, patientPhone,
+      doctorEmail, doctorName, doctorPhone, 
+      appointmentId, date, time 
+    } = req.body;
 
+    // Generate video call links
+    const patientVideoLink = generateVideoLink(appointmentId, "patient");
+    const doctorVideoLink = generateVideoLink(appointmentId, "doctor");
+
+    // ----- PATIENT NOTIFICATIONS -----
     await sendEmail(
       patientEmail,
       patientName,
       "✅ Appointment Confirmed",
       `
       <p>Hi ${patientName},</p>
-      <p>Your appointment <strong>${appointmentId}</strong> has been confirmed.</p>
+      <p>Your appointment <strong>${appointmentId}</strong> with Dr. ${doctorName} has been confirmed.</p>
       <p><strong>Date:</strong> ${date}</p>
       <p><strong>Time:</strong> ${time}</p>
+      <p><strong>Video Call Link:</strong> <a href="${patientVideoLink}">${patientVideoLink}</a></p>
+      <p>Please click the link at the scheduled time to join your consultation.</p>
       `
     );
+    await new Notification({ 
+      recipientEmail: patientEmail, recipientName: patientName, 
+      subject: "Appointment Confirmed", 
+      message: `Your appointment ${appointmentId} has been confirmed on ${date} at ${time}.`, 
+      type: "appointment_confirmed", status: "sent" 
+    }).save();
 
-    return res.status(200).json({ message: "Confirmed notification sent" });
+    const patientWhatsAppMsg = `✅ *Payment Confirmed*\n\nHi ${patientName},\nYour payment was successful and your appointment with Dr. ${doctorName} is confirmed.\n📅 Date: ${date}\n⏰ Time: ${time}\n🔗 Join Video Call: ${patientVideoLink}\n\nPlease click the link at the scheduled time.\nThank you for using our service.`;
+    await sendWhatsApp(patientPhone, patientWhatsAppMsg);
+
+    // ----- DOCTOR NOTIFICATIONS -----
+    if (doctorEmail) {
+      await sendEmail(
+        doctorEmail,
+        doctorName,
+        "✅ Appointment Confirmed",
+        `
+        <p>Hi Dr. ${doctorName},</p>
+        <p>The appointment <strong>${appointmentId}</strong> with patient ${patientName} has been confirmed (Payment Successful).</p>
+        <p><strong>Date:</strong> ${date}</p>
+        <p><strong>Time:</strong> ${time}</p>
+        <p><strong>Video Call Link:</strong> <a href="${doctorVideoLink}">${doctorVideoLink}</a></p>
+        <p>Please click the link at the scheduled time to start the consultation session.</p>
+        `
+      );
+      await new Notification({ 
+        recipientEmail: doctorEmail, recipientName: doctorName, 
+        subject: "Appointment Confirmed", 
+        message: `Appointment ${appointmentId} with patient ${patientName} has been confirmed on ${date} at ${time}.`, 
+        type: "appointment_confirmed", status: "sent" 
+      }).save();
+    }
+
+    if (doctorPhone) {
+      const doctorWhatsAppMsg = `✅ *Payment Confirmed*\n\nDr. ${doctorName},\nThe payment for appointment ${appointmentId} with patient ${patientName} was successful. The appointment is now confirmed.\n📅 Date: ${date}\n⏰ Time: ${time}\n🔗 Join Video Call: ${doctorVideoLink}\n\nClick the link to start the session.`;
+      await sendWhatsApp(doctorPhone, doctorWhatsAppMsg);
+    }
+
+    return res.status(200).json({ message: "Confirmed notification sent to patient and doctor" });
 
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
 };
+
 
 export const appointmentRescheduled = async (req, res) => {
   try {

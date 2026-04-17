@@ -17,7 +17,7 @@ export async function deleteOwnAccount(token) {
 }
 // Utility to fetch patient profile from backend
 export async function fetchPatientProfile(token) {
-  const res = await fetch("http://localhost:5002/api/patients/profile", {
+  const res = await fetch("http://localhost:5003/api/patients/profile", {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -29,7 +29,7 @@ export async function fetchPatientProfile(token) {
 }
 // Utility to update patient profile in backend
 export async function updatePatientProfile(token, profileData) {
-  const res = await fetch("http://localhost:5002/api/patients/profile", {
+  const res = await fetch("http://localhost:5003/api/patients/profile", {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -42,7 +42,7 @@ export async function updatePatientProfile(token, profileData) {
 }
 // Utility to create patient profile in backend
 export async function createPatientProfile(token, profileData) {
-  const res = await fetch("http://localhost:5002/api/patients/profile", {
+  const res = await fetch("http://localhost:5003/api/patients/profile", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

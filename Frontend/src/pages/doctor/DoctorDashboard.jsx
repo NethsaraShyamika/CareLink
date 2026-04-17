@@ -751,17 +751,17 @@ export default function DoctorAppointments() {
   const handleAccept = async (appt) => {
     const token = localStorage.getItem("token");
     try {
-      await axios.put(`${APPT_API}/appointments/${appt._id}/confirm`, {}, {
+      await axios.put(`${APPT_API}/appointments/${appt._id}/accept`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
       setAppointments(prev => 
-        prev.map(a => a._id === appt._id ? { ...a, status: "accepted" } : a)
+        prev.map(a => a._id === appt._id ? { ...a, status: "confirmed" } : a)
       );
-      toast("Appointment accepted", "success");
+      toast("Appointment confirmed", "success");
     } catch (error) {
       console.error("Error accepting:", error);
-      toast("Failed to accept appointment", "error");
+      toast(error.response?.data?.message || error.message || "Failed to confirm appointment", "error");
     }
   };
 
@@ -796,7 +796,7 @@ export default function DoctorAppointments() {
   const navigateToDashboard = () => navigate("/doctor/dashboard");
   const navigateToAppointments = () => navigate("/doctor/appointments");
   const navigateToPatients = () => navigate("/doctor/patients");
-  const navigateToVideo = () => navigate("/doctor/video");
+  const navigateToVideo = () => window.open("/video?role=doctor", "_blank");
   const navigateToPrescriptions = () => navigate("/doctor/prescriptions");
   const navigateToSettings = () => navigate("/doctor/profile");
 

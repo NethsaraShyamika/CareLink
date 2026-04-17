@@ -435,7 +435,7 @@ export default function DoctorAppointments() {
     const token = localStorage.getItem("token");
     try {
       await axios.put(
-        `${APPT_API}/appointments/${appointment._id}/confirm`,
+        `${APPT_API}/appointments/${appointment._id}/accept`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -445,7 +445,7 @@ export default function DoctorAppointments() {
       showToast("Appointment confirmed successfully", "success");
     } catch (err) {
       console.error("Accept error:", err);
-      showToast(err.response?.data?.message || "Failed to confirm appointment", "error");
+      showToast(err.response?.data?.message || err.message || "Failed to confirm appointment", "error");
     }
   };
 
@@ -469,7 +469,7 @@ export default function DoctorAppointments() {
   };
 
   const handleJoin = (appointment) => {
-    navigate(`/video-session/${appointment._id}`);
+    window.open(`/video?appointmentId=${appointment._id}&role=doctor`, "_blank");
   };
 
   const handleLogout = () => {
@@ -484,7 +484,7 @@ export default function DoctorAppointments() {
       dashboard: "/doctor/dashboard",
       appointments: "/doctor/appointments",
       patients: "/doctor/patients",
-      video: "/doctor/video",
+      video: "/video?role=doctor",
       prescriptions: "/doctor/prescriptions",
       settings: "/doctor/settings",
     };
