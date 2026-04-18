@@ -10,9 +10,7 @@ const FRONTEND_URL =
   process.env.FRONTEND_URL || "http://localhost:5173";
 
 
-// ======================================================
-// CREATE CHECKOUT SESSION (ONLY FLOW YOU NEED)
-// ======================================================
+
 // POST /api/payments/stripe/create-checkout
 export async function createStripeCheckoutSession(req, res) {
   try {
@@ -82,9 +80,7 @@ export async function createStripeCheckoutSession(req, res) {
 }
 
 
-// ======================================================
-// STRIPE WEBHOOK (ONLY RELIABLE PAYMENT SOURCE)
-// ======================================================
+
 // POST /api/payments/stripe/webhook
 export async function stripeWebhook(req, res) {
   const sig = req.headers["stripe-signature"];
@@ -148,9 +144,7 @@ export async function stripeWebhook(req, res) {
 }
 
 
-// ======================================================
-// GET PAYMENT HISTORY (PATIENT)
-// ======================================================
+
 export async function getPaymentHistory(req, res) {
   try {
     const payments = await Payment.find({ patientId: req.user.id })
@@ -169,9 +163,7 @@ export async function getPaymentHistory(req, res) {
 }
 
 
-// ======================================================
-// GET PAYMENT BY ID
-// ======================================================
+
 export async function getPaymentById(req, res) {
   try {
     const payment = await Payment.findById(req.params.id).select(
@@ -199,9 +191,7 @@ export async function getPaymentById(req, res) {
 }
 
 
-// ======================================================
-// GET PAYMENT BY APPOINTMENT
-// ======================================================
+
 export async function getPaymentByAppointment(req, res) {
   try {
     const payment = await Payment.findOne({
@@ -231,9 +221,7 @@ export async function getPaymentByAppointment(req, res) {
 }
 
 
-// ======================================================
-// ADMIN - GET ALL PAYMENTS
-// ======================================================
+
 export async function getAllPayments(req, res) {
   try {
     const { status, gateway, page = 1, limit = 20 } = req.query;

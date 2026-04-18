@@ -2,9 +2,7 @@ import pkg from "agora-token";
 const { RtcTokenBuilder, RtcRole } = pkg;
 import Room from "../models/room.js";
 
-/**
- * Generate Agora Token
- */
+
 export const generateToken = async (req, res) => {
   try {
     const { channelName, uid, role } = req.body;
@@ -35,7 +33,7 @@ export const generateToken = async (req, res) => {
       });
     }
 
-    // ✅ PRODUCTION MODE: Generate secured token
+   
     const userRole =
       role === "doctor" ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER;
 
@@ -68,9 +66,7 @@ export const generateToken = async (req, res) => {
   }
 };
 
-/**
- * Create Room
- */
+
 export const createRoom = async (req, res) => {
   try {
     const { appointmentId, doctorId, patientId } = req.body;
@@ -105,9 +101,7 @@ export const createRoom = async (req, res) => {
   }
 };
 
-/**
- * Get Room by Appointment ID
- */
+
 export const getRoom = async (req, res) => {
   try {
     const { appointmentId } = req.params;
@@ -130,9 +124,7 @@ export const getRoom = async (req, res) => {
   }
 };
 
-/**
- * End Room
- */
+
 export const endRoom = async (req, res) => {
   try {
     const { channelName } = req.body;
@@ -168,9 +160,7 @@ export const endRoom = async (req, res) => {
   }
 };
 
-/**
- * Get All Rooms
- */
+
 export const getAllRooms = async (req, res) => {
   try {
     const rooms = await Room.find();

@@ -1,11 +1,11 @@
 import jwt from "jsonwebtoken";
 import axios from "axios";
 
-// 🔐 Protect route
+
 export const protect = async (req, res, next) => {
   let token = req.headers.authorization;
 
-  // ✅ FIRST check token exists
+
   if (!token || !token.startsWith("Bearer")) {
     return res.status(401).json({
       message: "Not authorized, token missing",
@@ -13,7 +13,7 @@ export const protect = async (req, res, next) => {
   }
 
   try {
-    // ✅ THEN split
+    
     token = token.split(" ")[1];
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -35,7 +35,7 @@ export const protect = async (req, res, next) => {
   }
 };
 
-// 👤 Only Patient
+
 export const patientOnly = (req, res, next) => {
   if (req.user.role !== "patient") {
     return res.status(403).json({
@@ -45,7 +45,7 @@ export const patientOnly = (req, res, next) => {
   next();
 };
 
-// 🩺 Only Doctor
+
 export const doctorOnly = (req, res, next) => {
   if (req.user.role !== "doctor") {
     return res.status(403).json({
@@ -55,7 +55,7 @@ export const doctorOnly = (req, res, next) => {
   next();
 };
 
-// 🛡 Admin Only
+
 export const adminOnly = (req, res, next) => {
   if (req.user.role !== "admin") {
     return res.status(403).json({
@@ -65,7 +65,7 @@ export const adminOnly = (req, res, next) => {
   next();
 };
 
-// 🔄 Patient OR Doctor
+
 export const patientOrDoctor = (req, res, next) => {
   if (!["patient", "doctor"].includes(req.user.role)) {
     return res.status(403).json({

@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 // ─── Counter Schema (for auto-incrementing userId) ────────────────────────────
 
 const counterSchema = new mongoose.Schema({
-  _id: { type: String, required: true },   // e.g. "userId"
+  _id: { type: String, required: true },   
   seq: { type: Number, default: 0 },
 });
 
@@ -13,7 +13,7 @@ const Counter = mongoose.model('Counter', counterSchema);
 
 const userSchema = new mongoose.Schema(
   {
-    // 🪪 Auto-incrementing human-readable ID
+    
     userId: {
       type: Number,
       unique: true,
@@ -53,7 +53,7 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: [true, 'Password is required'],
-      select: false, // 🔒 never return password
+      select: false, 
     },
 
     role: {
@@ -102,7 +102,7 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// ─── Auto-increment userId before saving ──────────────────────────────────────
+
 
 userSchema.pre('save', async function () {
   if (!this.isNew) return;
@@ -118,9 +118,3 @@ userSchema.pre('save', async function () {
 
 const User = mongoose.model('User', userSchema);
 export default User;
-/*{
-    "name": "John Doe",
-    "email": "john@example.com",
-    "password": "password123",
-    "role": "patient"
-}```*/

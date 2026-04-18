@@ -24,13 +24,20 @@ const sendNotification = async (type, appointment) => {
       }
     } catch(e) { console.error("Error fetching doctor", e.message); }
 
-    const patientEmail = patientData?.email || "patient@gmail.com";
+    const patientEmail = patientData?.email || "";
     const patientName = patientData ? `${patientData.firstName} ${patientData.lastName}` : `${appointment.firstName} ${appointment.lastName}`;
     const patientPhone = patientData?.phone || "";
 
-    const doctorEmail = doctorData?.email || "doctor@gmail.com";
+    const doctorEmail = doctorData?.email || "";
     const doctorName = doctorData ? `${doctorData.firstName} ${doctorData.lastName}` : `${appointment.doctorId}`;
     const doctorPhone = doctorData?.phone || "";
+
+    if (!patientEmail || !doctorEmail) {
+      console.warn("Notification send skipped due to missing email addresses", {
+        patientEmail, doctorEmail, patientName, doctorName, appointmentId: appointment._id
+      });
+      return;
+    }
 
     // Map 'type' to the correct endpoint in notification service
     let endpoint = "";
@@ -52,7 +59,7 @@ const sendNotification = async (type, appointment) => {
         patientName,
         patientPhone,
         doctorEmail,
-        doctorName: "Dr. " + doctorName,
+        doctorName,
         doctorPhone,
         appointmentId: appointment._id,
         date: appointment.date,
@@ -124,6 +131,9 @@ export const bookAppointment = async (req, res) => {
       reason: reason || "",
       status: "pending",
     });
+
+    // Notify doctor and patient about the booking
+    await sendNotification("booked", appointment);
 
     res.status(201).json({
       message: "Appointment booked successfully",
@@ -680,6 +690,5 @@ export const updateAppointment = async (req, res) => {
   }
 };
 
-// Note: confirmAppointment is renamed to acceptAppointment to better reflect the workflow
-// Keep both for backward compatibility
+
 export const confirmAppointment = acceptAppointment;

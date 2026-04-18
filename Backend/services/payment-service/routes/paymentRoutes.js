@@ -20,9 +20,7 @@ import {
 const router = express.Router();
 
 
-// ─────────────────────────────────────────────
-// RATE LIMITER
-// ─────────────────────────────────────────────
+
 const paymentLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
@@ -30,17 +28,11 @@ const paymentLimiter = rateLimit({
 });
 
 
-// ─────────────────────────────────────────────
-// STRIPE WEBHOOK (IMPORTANT)
-// ─────────────────────────────────────────────
-// ⚠ DO NOT use verifyToken here
-// ⚠ MUST be raw body (handled in app.js)
+
 router.post("/stripe/webhook", stripeWebhook);
 
 
-// ─────────────────────────────────────────────
-// STRIPE CHECKOUT (ONLY FLOW USED)
-// ─────────────────────────────────────────────
+
 router.post(
   "/stripe/create-checkout",
   verifyToken,
@@ -50,9 +42,7 @@ router.post(
 );
 
 
-// ─────────────────────────────────────────────
-// PAYMENT QUERIES
-// ─────────────────────────────────────────────
+
 
 // Patient history
 router.get(

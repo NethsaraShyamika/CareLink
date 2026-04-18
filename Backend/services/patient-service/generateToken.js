@@ -1,4 +1,4 @@
-// generateToken.js
+
 import jwt from 'jsonwebtoken';
 
 // HARDCODE the secret to ensure it matches
