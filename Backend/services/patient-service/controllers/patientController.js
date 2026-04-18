@@ -70,7 +70,7 @@ export const updateProfile = async (req, res) => {
         const userId = req.user.userId || req.user.id;
         const updated = await Patient.findOneAndUpdate(
             { userId },
-            {
+            { $set: {
                 firstName:      req.body.firstName,
                 lastName:       req.body.lastName,
                 email:          req.body.email,
@@ -80,8 +80,8 @@ export const updateProfile = async (req, res) => {
                 address:        req.body.address,
                 medicalHistory: req.body.medicalHistory,
                 bloodType:      req.body.bloodType
-            },
-            { new: true }
+            } },
+            { returnDocument: 'after' }
         );
 
         if (!updated) return res.status(404).json({ message: 'Patient profile not found' });
@@ -101,7 +101,7 @@ export const uploadReport = async (req, res) => {
         const patient = await Patient.findOneAndUpdate(
             { userId },
             { $push: { reports: { filename: req.file.filename, description: req.body.description } } },
-            { new: true }
+            { returnDocument: 'after' }
         );
 
         if (!patient) return res.status(404).json({ message: 'Patient profile not found' });
