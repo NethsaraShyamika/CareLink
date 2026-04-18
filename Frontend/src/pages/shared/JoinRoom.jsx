@@ -56,17 +56,23 @@ function JoinRoom({
   }, []);
 
   const handleJoin = () => {
-    const safeUid = uid || String(Math.floor(Math.random() * 900000 + 100000));
-    const safeAptNumber = aptNumber || String(Math.floor(Math.random() * 900000 + 100000));
-    const safeAppointmentId = `APT-${safeAptNumber}`;
+    const safeUid = uid.trim();
+    const safeAptNumber = aptNumber.trim();
 
-    if (!uid) {
-      setUid(safeUid);
+    if (!safeUid) {
+      alert("Please enter your user ID before joining the consultation.");
+      return;
     }
-    if (!aptNumber) {
-      setAptNumber(safeAptNumber);
-      setAppointmentId(safeAppointmentId);
+
+    if (!safeAptNumber) {
+      alert("Please enter the appointment number from your email.");
+      return;
     }
+
+    const safeAppointmentId = `APT-${safeAptNumber}`;
+    setUid(safeUid);
+    setAptNumber(safeAptNumber);
+    setAppointmentId(safeAppointmentId);
 
     stopPreview();
     joinCall(micEnabled, cameraEnabled, safeAppointmentId, safeUid);

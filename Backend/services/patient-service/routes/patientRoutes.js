@@ -49,7 +49,7 @@ router.get('/reports',            verifyToken,              getReports);
 // Prescription routes
 router.get('/prescriptions',      verifyToken,              getPrescriptions);
 
-// ✅ Admin: get all patients — GET not POST
+
 router.get('/all',                verifyToken, requireAdmin, getAllPatients);
 
 export default router;

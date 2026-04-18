@@ -76,6 +76,84 @@ export const appointmentBookedTemplate = (recipientName, appointmentId, doctorNa
     return baseTemplate(recipientName, contentHtml);
 };
 
+export const appointmentConfirmedTemplate = (recipientName, appointmentId, doctorName, patientName, date, time, isDoctor, videoLink) => {
+    const contentHtml = isDoctor ? `
+        <span class="status-badge badge-booked">✅ Appointment Confirmed</span>
+        <p>Your appointment has been confirmed. Here are the details:</p>
+        <div class="info-box">
+            <p>📋 <span>Appointment ID:</span> ${appointmentId}</p>
+            <p>🧑‍⚕️ <span>Patient:</span> ${patientName}</p>
+            <p>📅 <span>Date:</span> ${date}</p>
+            <p>🕐 <span>Time:</span> ${time}</p>
+        </div>
+        <p>🔗 <a href="${videoLink}" target="_blank" rel="noopener noreferrer">Open the appointment page</a></p>
+        <p>Please click the link at the scheduled time to start the consultation.</p>
+    ` : `
+        <span class="status-badge badge-booked">✅ Appointment Confirmed</span>
+        <p>Your appointment has been confirmed. Here are the details:</p>
+        <div class="info-box">
+            <p>📋 <span>Appointment ID:</span> ${appointmentId}</p>
+            <p>👨‍⚕️ <span>Doctor:</span> ${doctorName}</p>
+            <p>📅 <span>Date:</span> ${date}</p>
+            <p>🕐 <span>Time:</span> ${time}</p>
+        </div>
+        <p>🔗 <a href="${videoLink}" target="_blank" rel="noopener noreferrer">Open the appointment page</a></p>
+        <p>Please click the link at the scheduled time to join your consultation.</p>
+    `;
+    return baseTemplate(recipientName, contentHtml);
+};
+
+export const appointmentAcceptedTemplate = (recipientName, appointmentId, doctorName, patientName, date, time, isDoctor, appointmentUrl, loginUrl) => {
+    const contentHtml = isDoctor ? `
+        <span class="status-badge badge-booked">✅ Appointment Accepted</span>
+        <p>You have accepted the appointment. Here are the details:</p>
+        <div class="info-box">
+            <p>📋 <span>Appointment ID:</span> ${appointmentId}</p>
+            <p>🧑‍⚕️ <span>Patient:</span> ${patientName}</p>
+            <p>📅 <span>Date:</span> ${date}</p>
+            <p>🕐 <span>Time:</span> ${time}</p>
+        </div>
+        <p>The patient has been notified to complete payment. You will receive the video consultation link once payment is processed.</p>
+    ` : `
+        <span class="status-badge badge-booked">✅ Appointment Accepted - Awaiting Payment</span>
+        <p>Your appointment has been accepted by Dr. ${doctorName}. Here are the details:</p>
+        <div class="info-box">
+            <p>📋 <span>Appointment ID:</span> ${appointmentId}</p>
+            <p>👨‍⚕️ <span>Doctor:</span> ${doctorName}</p>
+            <p>📅 <span>Date:</span> ${date}</p>
+            <p>🕐 <span>Time:</span> ${time}</p>
+        </div>
+        <p><strong>Please log in to your dashboard and complete the payment to fully secure and confirm your appointment.</strong></p>
+        <p><strong>Action:</strong> <a href="${appointmentUrl}" target="_blank" rel="noopener noreferrer">Open your appointments page</a></p>
+        <p>If you are not already signed in, use this link: <a href="${loginUrl}" target="_blank" rel="noopener noreferrer">Login to CareLink</a>.</p>
+        <p>Your video consultation link will be provided immediately once the payment is successful.</p>
+    `;
+    return baseTemplate(recipientName, contentHtml);
+};
+
+export const reminderTemplate = (recipientName, appointmentId, doctorName, patientName, date, time, isDoctor) => {
+    const contentHtml = isDoctor ? `
+        <span class="status-badge badge-booked">⏰ Appointment Reminder</span>
+        <p>This is a reminder for your upcoming appointment with patient ${patientName}.</p>
+        <div class="info-box">
+            <p>📋 <span>Appointment ID:</span> ${appointmentId}</p>
+            <p>📅 <span>Date:</span> ${date}</p>
+            <p>🕐 <span>Time:</span> ${time}</p>
+        </div>
+        <p>Please be ready at the scheduled time.</p>
+    ` : `
+        <span class="status-badge badge-booked">⏰ Appointment Reminder</span>
+        <p>This is a reminder for your upcoming appointment with Dr. ${doctorName}.</p>
+        <div class="info-box">
+            <p>📋 <span>Appointment ID:</span> ${appointmentId}</p>
+            <p>📅 <span>Date:</span> ${date}</p>
+            <p>🕐 <span>Time:</span> ${time}</p>
+        </div>
+        <p>Please be ready at the scheduled time.</p>
+    `;
+    return baseTemplate(recipientName, contentHtml);
+};
+
 export const consultationCompletedTemplate = (recipientName, appointmentId, doctorName, patientName, isDoctor) => {
     const contentHtml = isDoctor ? `
         <span class="status-badge badge-completed">✅ Consultation Completed</span>

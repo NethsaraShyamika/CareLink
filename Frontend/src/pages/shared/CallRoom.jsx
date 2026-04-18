@@ -68,7 +68,23 @@ function CallRoom({
 
   const handleDownload = (fileData, fileName) => {
     if (!fileData || !fileName) return;
-    window.open(fileData, "_blank", "noopener,noreferrer");
+
+    try {
+      // Create a temporary link element
+      const link = document.createElement('a');
+      link.href = fileData; // This should be a data URL like "data:application/pdf;base64,..."
+      link.download = fileName;
+      link.style.display = 'none';
+
+      // Add to DOM, click, and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Download failed:', error);
+      // Fallback: open in new tab
+      window.open(fileData, '_blank', 'noopener,noreferrer');
+    }
   };
 
   const toggleFullscreen = () => {
@@ -313,12 +329,14 @@ function CallRoom({
               ) : (
                 messages.map((msg, i) => (
                   <div key={msg.id || i} className={`flex flex-col ${msg.mine ? "items-end" : "items-start"}`}>
-                    {/* Sender label */}
-                    <span className={`text-[10px] font-semibold mb-1 px-1 ${
-                      msg.senderRole === "doctor" ? "text-blue-400/80" : "text-emerald-400/80"
-                    }`}>
-                      {msg.sender}
-                    </span>
+                    {/* Sender label for non-system messages */}
+                    {msg.type !== 'system' && (
+                      <span className={`text-[10px] font-semibold mb-1 px-1 ${
+                        msg.senderRole === "doctor" ? "text-blue-400/80" : "text-emerald-400/80"
+                      }`}>
+                        {msg.sender}
+                      </span>
+                    )}
 
                     {msg.type === "file" ? (
                       // File bubble
@@ -343,6 +361,11 @@ function CallRoom({
                             ⬇️ Download File
                           </button>
                         )}
+                      </div>
+                    ) : msg.type === "system" ? (
+                      // System message
+                      <div className="w-full max-w-[260px] px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-center">
+                        <p className="text-white/60 text-xs italic">{msg.text}</p>
                       </div>
                     ) : (
                       // Text bubble

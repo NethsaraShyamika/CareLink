@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'mysecretkey123'; // ✅ matches
+const JWT_SECRET = process.env.JWT_SECRET || 'mysecretkey123'; 
 
 export default (req, res, next) => {
     try {

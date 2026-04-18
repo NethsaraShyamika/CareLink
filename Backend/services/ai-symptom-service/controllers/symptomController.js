@@ -56,11 +56,10 @@ Provide a structured JSON response ONLY in the format:
     // Call Gemini AI
     let aiResponse;
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); // best modern model
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
       const result = await model.generateContent(prompt);
       const rawText = result.response.text().trim();
 
-      // Clean up code blocks
       const cleaned = rawText
         .replace(/^```json\s*/i, "")
         .replace(/^```\s*/i, "")
@@ -71,7 +70,6 @@ Provide a structured JSON response ONLY in the format:
     } catch (apiError) {
       console.warn("Gemini API skipped/failed. Falling back to Mock AI logic:", apiError.message);
       
-      // Intelligent fallback for assignment demo purposes if API key is invalid
       aiResponse = {
         possibleConditions: [
           {

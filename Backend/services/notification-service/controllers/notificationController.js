@@ -2,37 +2,63 @@ import transporter from "../middlewares/emailTransporter.js";
 import Notification from "../models/notification.js";
 import {
     appointmentBookedTemplate,
+    appointmentConfirmedTemplate,
+    appointmentAcceptedTemplate,
     consultationCompletedTemplate,
-    appointmentCancelledTemplate
+    appointmentCancelledTemplate,
+    reminderTemplate
 } from "../utils/emailTemplates.js";
 import twilio from 'twilio';
 import dotenv from 'dotenv';
 dotenv.config();
 
 // ==================== TWILIO WHATSAPP SETUP ====================
-const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-const fromWhatsApp = `whatsapp:${process.env.TWILIO_WHATSAPP_SANDBOX_NUMBER}`; // e.g., +14155238886
+const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID?.trim();
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN?.trim();
+const TWILIO_WHATSAPP_SANDBOX_NUMBER = process.env.TWILIO_WHATSAPP_SANDBOX_NUMBER?.trim();
+
+const normalizePhoneNumber = (phone) => {
+    const raw = String(phone || "").trim().replace(/[\s()-]/g, "");
+    if (!raw) return "";
+    if (raw.startsWith("+")) return raw;
+    if (raw.startsWith("94") && raw.length === 11) return `+${raw}`;
+    if (raw.startsWith("0") && raw.length === 10) return `+94${raw.slice(1)}`;
+    if (/^\d{9}$/.test(raw)) return `+94${raw}`;
+    return raw;
+};
+
+const twilioClient = TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN ? twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) : null;
+const sanitizedSandboxNumber = TWILIO_WHATSAPP_SANDBOX_NUMBER?.replace(/^whatsapp:/i, "");
+const fromWhatsApp = sanitizedSandboxNumber ? `whatsapp:${normalizePhoneNumber(sanitizedSandboxNumber)}` : null;
 
 /**
  * Send a WhatsApp message via Twilio Sandbox
- * @param {string} toPhone - recipient's phone number (E.164 format)
+ * @param {string} toPhone - recipient's phone number
  * @param {string} message - plain text message body
  */
 const sendWhatsApp = async (toPhone, message) => {
-    if (!toPhone) {
+    if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_WHATSAPP_SANDBOX_NUMBER) {
+        console.warn("WhatsApp is not configured: missing Twilio credentials or sandbox number.");
+        return;
+    }
+
+    const normalizedToPhone = normalizePhoneNumber(toPhone);
+    if (!normalizedToPhone) {
         console.warn("No phone number provided, skipping WhatsApp notification");
         return;
     }
+
     try {
         const msg = await twilioClient.messages.create({
             body: message,
             from: fromWhatsApp,
-            to: `whatsapp:${toPhone}`
+            to: `whatsapp:${normalizedToPhone}`
         });
-        console.log(`WhatsApp message sent to ${toPhone}: ${msg.sid}`);
+        console.log(`WhatsApp message sent to ${normalizedToPhone}: ${msg.sid}`);
         return msg;
     } catch (error) {
-        console.error(`WhatsApp send failed to ${toPhone}:`, error.message);
+        console.error(`WhatsApp send failed to ${normalizedToPhone}:`, error.message);
+        console.warn("Make sure the recipient number is in E.164 format and that the Twilio WhatsApp sandbox has been joined from that WhatsApp account.");
         // Don't throw - we don't want to break the email flow
     }
 };
@@ -47,7 +73,7 @@ const generateVideoLink = (appointmentId, role = "patient") => {
     const baseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     const encodedId = encodeURIComponent(appointmentId);
     const roleParam = role === "doctor" ? "doctor" : "patient";
-    return `${baseUrl}/?appointmentId=${encodedId}&autoJoin=1&role=${roleParam}`;
+    return `${baseUrl}/video?appointmentId=${encodedId}&role=${roleParam}`;
 };
 
 // ==================== EXISTING EMAIL FUNCTIONS (unchanged) ====================
@@ -132,6 +158,10 @@ export const appointmentAccepted = async (req, res) => {
             appointmentId, date, time
         } = req.body;
 
+        const baseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+        const patientAppointmentUrl = `${baseUrl}/patient/appointments`;
+        const loginUrl = `${baseUrl}/login`;
+
         if (!doctorEmail || !doctorName || !patientEmail || !patientName || !appointmentId) {
             return res.status(400).json({ error: "Required fields are missing" });
         }
@@ -141,15 +171,7 @@ export const appointmentAccepted = async (req, res) => {
             patientEmail,
             patientName,
             "✅ Appointment Accepted - Awaiting Payment",
-            `
-            <p>Hi ${patientName},</p>
-            <p>Your appointment request <strong>${appointmentId}</strong> has been <strong>accepted</strong> by Dr. ${doctorName}.</p>
-            <p><strong>Date:</strong> ${date}</p>
-            <p><strong>Time:</strong> ${time}</p>
-            <br/>
-            <p><strong>Please log in to your dashboard and complete the payment to fully secure and confirm your appointment.</strong></p>
-            <p>Your video consultation link will be provided immediately once the payment is successful.</p>
-            `
+            appointmentAcceptedTemplate(patientName, appointmentId, doctorName, patientName, date, time, false, patientAppointmentUrl, loginUrl)
         );
         await new Notification({ 
             recipientEmail: patientEmail, recipientName: patientName, 
@@ -166,13 +188,7 @@ export const appointmentAccepted = async (req, res) => {
             doctorEmail,
             doctorName,
             "✅ Appointment Accepted",
-            `
-            <p>Hi Dr. ${doctorName},</p>
-            <p>You have successfully accepted the appointment <strong>${appointmentId}</strong> for patient ${patientName}.</p>
-            <p><strong>Date:</strong> ${date}</p>
-            <p><strong>Time:</strong> ${time}</p>
-            <p>The patient has been notified to complete the payment. Both of you will receive the join link once payment is made.</p>
-            `
+            appointmentAcceptedTemplate(doctorName, appointmentId, doctorName, patientName, date, time, true, patientAppointmentUrl, loginUrl)
         );
         await new Notification({ 
             recipientEmail: doctorEmail, recipientName: doctorName, 
@@ -322,14 +338,7 @@ export const sendReminder = async (req, res) => {
       patientEmail,
       patientName,
       "⏰ Appointment Reminder",
-      `
-        <p>Hi ${patientName},</p>
-        <p>This is a reminder for your appointment.</p>
-        <p><strong>Doctor:</strong> ${doctorName}</p>
-        <p><strong>Date:</strong> ${date}</p>
-        <p><strong>Time:</strong> ${time}</p>
-        <p>Please be ready on time.</p>
-      `
+      reminderTemplate(patientName, appointmentId, doctorName, patientName, date, time, false)
     );
 
     return res.status(200).json({ message: "Reminder sent" });
@@ -358,14 +367,7 @@ export const appointmentConfirmed = async (req, res) => {
       patientEmail,
       patientName,
       "✅ Appointment Confirmed",
-      `
-      <p>Hi ${patientName},</p>
-      <p>Your appointment <strong>${appointmentId}</strong> with Dr. ${doctorName} has been confirmed.</p>
-      <p><strong>Date:</strong> ${date}</p>
-      <p><strong>Time:</strong> ${time}</p>
-      <p><strong>Video Call Link:</strong> <a href="${patientVideoLink}">${patientVideoLink}</a></p>
-      <p>Please click the link at the scheduled time to join your consultation.</p>
-      `
+      appointmentConfirmedTemplate(patientName, appointmentId, doctorName, patientName, date, time, false, patientVideoLink)
     );
     await new Notification({ 
       recipientEmail: patientEmail, recipientName: patientName, 
@@ -383,14 +385,7 @@ export const appointmentConfirmed = async (req, res) => {
         doctorEmail,
         doctorName,
         "✅ Appointment Confirmed",
-        `
-        <p>Hi Dr. ${doctorName},</p>
-        <p>The appointment <strong>${appointmentId}</strong> with patient ${patientName} has been confirmed (Payment Successful).</p>
-        <p><strong>Date:</strong> ${date}</p>
-        <p><strong>Time:</strong> ${time}</p>
-        <p><strong>Video Call Link:</strong> <a href="${doctorVideoLink}">${doctorVideoLink}</a></p>
-        <p>Please click the link at the scheduled time to start the consultation session.</p>
-        `
+        appointmentConfirmedTemplate(doctorName, appointmentId, doctorName, patientName, date, time, true, doctorVideoLink)
       );
       await new Notification({ 
         recipientEmail: doctorEmail, recipientName: doctorName, 

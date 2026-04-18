@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import AgoraRTC from "agora-rtc-sdk-ng";
+import { io } from "socket.io-client";
 import API_BASE_URL from "../config.js";
 import JoinRoom from "./JoinRoom.jsx";
 import CallRoom from "./CallRoom.jsx";
@@ -20,6 +21,11 @@ function VideoCall({
   const [micOn, setMicOn] = useState(true);
   const [cameraOn, setCameraOn] = useState(true);
 
+  // Chat state
+  const [messages, setMessages] = useState([]);
+  const [chatInput, setChatInput] = useState("");
+  const [socket, setSocket] = useState(null);
+
   const clientRef = useRef(null);
 
   useEffect(() => {
@@ -30,6 +36,102 @@ function VideoCall({
       return () => clearTimeout(timer);
     }
   }, [autoJoinEnabled, appointmentId, joined]);
+
+  // Initialize socket connection
+  useEffect(() => {
+    if (joined && appointmentId) {
+      const socketUrl = import.meta.env.VITE_TELEMEDICINE_SERVICE_URL || "http://localhost:3004";
+      const newSocket = io(socketUrl, {
+        transports: ['websocket', 'polling']
+      });
+
+      newSocket.on('connect', () => {
+        console.log('Connected to chat server');
+        // Join the room
+        newSocket.emit('join-room', {
+          appointmentId,
+          role,
+          userId: uid || 'anonymous'
+        });
+      });
+
+      // Listen for messages
+      newSocket.on('receive-message', (messageData) => {
+        setMessages(prev => [...prev, {
+          ...messageData,
+          mine: messageData.senderRole === role
+        }]);
+      });
+
+      // Listen for files
+      newSocket.on('receive-file', (fileData) => {
+        setMessages(prev => [...prev, {
+          ...fileData,
+          mine: fileData.senderRole === role
+        }]);
+      });
+
+      // Listen for user join/leave
+      newSocket.on('user-joined', (data) => {
+        setMessages(prev => [...prev, {
+          id: Date.now(),
+          type: 'system',
+          text: data.message,
+          timestamp: new Date().toISOString()
+        }]);
+      });
+
+      newSocket.on('user-left', (data) => {
+        setMessages(prev => [...prev, {
+          id: Date.now(),
+          type: 'system',
+          text: data.message,
+          timestamp: new Date().toISOString()
+        }]);
+      });
+
+      setSocket(newSocket);
+
+      return () => {
+        newSocket.disconnect();
+      };
+    }
+  }, [joined, appointmentId, role, uid]);
+
+  // Chat functions
+  const sendMessage = () => {
+    if (!socket || !chatInput.trim()) return;
+
+    socket.emit('send-message', {
+      appointmentId,
+      message: chatInput.trim(),
+      sender: role === 'doctor' ? 'Doctor' : 'Patient',
+      senderRole: role
+    });
+
+    setChatInput("");
+  };
+
+  const sendFile = async (file) => {
+    if (!socket || !file) return;
+
+    // Convert file to base64
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64Data = reader.result;
+      const fileSize = (file.size / 1024).toFixed(1) + ' KB';
+
+      socket.emit('send-file', {
+        appointmentId,
+        fileName: file.name,
+        fileData: base64Data,
+        fileSize,
+        sender: role === 'doctor' ? 'Doctor' : 'Patient',
+        senderRole: role
+      });
+    };
+    reader.readAsDataURL(file);
+  };
 
   const joinCall = async (micEnabled = true, cameraEnabled = true, appointmentIdOverride, uidOverride) => {
     try {
@@ -164,6 +266,12 @@ function VideoCall({
         clientRef.current = null;
       }
 
+      // Disconnect socket
+      if (socket) {
+        socket.disconnect();
+        setSocket(null);
+      }
+
       await fetch(`${API_BASE_URL}/telemedicine/room/end`, {
         method: "POST",
         headers: {
@@ -181,6 +289,8 @@ function VideoCall({
       setLocalTracks([]);
       setMicOn(true);
       setCameraOn(true);
+      setMessages([]);
+      setChatInput("");
     }
   };
 
@@ -214,6 +324,11 @@ function VideoCall({
         <CallRoom
           role={role}
           appointmentId={appointmentId}
+          messages={messages}
+          chatInput={chatInput}
+          setChatInput={setChatInput}
+          sendMessage={sendMessage}
+          sendFile={sendFile}
           micOn={micOn}
           cameraOn={cameraOn}
           toggleMic={toggleMic}

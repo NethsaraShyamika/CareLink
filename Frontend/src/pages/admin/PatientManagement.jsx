@@ -164,7 +164,7 @@ const PatientManagement = () => {
       setError(null);
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("http://localhost:5003/api/patients/all", {
+        const res = await axios.get("http://localhost:3001/api/patients/all", {
           headers: { Authorization: `Bearer ${token}` },
         });
         setPatients(res.data);

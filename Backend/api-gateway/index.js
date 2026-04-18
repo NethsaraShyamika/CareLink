@@ -9,24 +9,32 @@ const app = express();
 
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://localhost:5175",
+      "http://localhost:5176",
+      "http://localhost:3000",
+      process.env.FRONTEND_URL
+    ].filter(Boolean),
     credentials: true,
   }),
 );
 
-// Define routes and their target microservices
+
 const routes = {
-  "/api/patients": "http://localhost:5003",
-  "/api/doctors": "http://localhost:3002",
-  "/api/appointments": "http://localhost:5002",
-  "/api/telemedicines": "http://localhost:3004",
-  "/api/payments": "http://localhost:3005",
-  "/api/notifications": "http://localhost:3006",
-  "/api/symptoms": "http://localhost:3007",
-  "/api/auth": "http://localhost:3008",
+  "/api/patients": process.env.PATIENT_SERVICE_URL || "http://localhost:3001",
+  "/api/doctors": process.env.DOCTOR_SERVICE_URL || "http://localhost:3002",
+  "/api/appointments": process.env.APPOINTMENT_SERVICE_URL || "http://localhost:3003",
+  "/api/telemedicine": process.env.TELEMEDICINE_SERVICE_URL || "http://localhost:3004",
+  "/api/payments": process.env.PAYMENT_SERVICE_URL || "http://localhost:3005",
+  "/api/notifications": process.env.NOTIFICATION_SERVICE_URL || "http://localhost:3006",
+  "/api/symptoms": process.env.SYMPTOM_SERVICE_URL || "http://localhost:3007",
+  "/api/auth": process.env.AUTH_SERVICE_URL || "http://localhost:3008",
 };
 
-// Set up proxy middleware for each route
+
 for (const route in routes) {
   const target = routes[route];
 
@@ -38,7 +46,7 @@ for (const route in routes) {
 
       pathRewrite: (path, req) => req.originalUrl,
 
-      // 🔥 ADD THIS
+      
       onProxyReq: (proxyReq, req) => {
         if (req.headers.authorization) {
           proxyReq.setHeader("authorization", req.headers.authorization);

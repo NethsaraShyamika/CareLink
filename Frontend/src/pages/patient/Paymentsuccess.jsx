@@ -14,8 +14,9 @@ import { useEffect, useState } from "react";
  *   <Route path="/payment/success" element={<PaymentSuccess />} />
  */
 
-const API            = "http://localhost:3005/api";
-const APPOINTMENT_API = "http://localhost:5002/api";
+import { API_GATEWAY } from "../../utils/api";
+const API            = import.meta.env.VITE_API_GATEWAY_URL || API_GATEWAY;
+const APPOINTMENT_API = import.meta.env.VITE_API_GATEWAY_URL || API_GATEWAY;
 const token          = () => localStorage.getItem("token");
 
 const css = `

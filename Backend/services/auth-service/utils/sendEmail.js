@@ -1,4 +1,4 @@
-// Temporary mock for email microservice integration
+
 export const sendWelcomeEmail = async (...args) => {
   console.log('Mock sendWelcomeEmail', ...args);
 };

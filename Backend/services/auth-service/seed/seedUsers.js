@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
-import User from "../../auth-service/models/User.js";
+import User from "../models/User.js";
 
 dotenv.config();
 
@@ -11,7 +11,7 @@ const seedUsers = async () => {
 
     console.log("MongoDB connected ✔");
 
-    // 🔥 optional cleanup (ONLY if you want fresh start)
+   
     await User.deleteMany({ email: { $in: ["admin@gmail.com", "d@gmail.com"] } });
 
     const adminPassword = await bcrypt.hash("Admin123", 10);
