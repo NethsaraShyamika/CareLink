@@ -16,14 +16,14 @@ app.use(
 
 // Define routes and their target microservices
 const routes = {
-  "/api/patients": "http://localhost:5003",
-  "/api/doctors": "http://localhost:3002",
-  "/api/appointments": "http://localhost:5002",
-  "/api/telemedicines": "http://localhost:3004",
-  "/api/payments": "http://localhost:3005",
-  "/api/notifications": "http://localhost:3006",
-  "/api/symptoms": "http://localhost:3007",
-  "/api/auth": "http://localhost:3008",
+  "/api/patients": process.env.PATIENT_SERVICE_URL || "http://localhost:3001",
+  "/api/doctors": process.env.DOCTOR_SERVICE_URL || "http://localhost:3002",
+  "/api/appointments": process.env.APPOINTMENT_SERVICE_URL || "http://localhost:3003",
+  "/api/telemedicine": process.env.TELEMEDICINE_SERVICE_URL || "http://localhost:3004",
+  "/api/payments": process.env.PAYMENT_SERVICE_URL || "http://localhost:3005",
+  "/api/notifications": process.env.NOTIFICATION_SERVICE_URL || "http://localhost:3006",
+  "/api/symptoms": process.env.SYMPTOM_SERVICE_URL || "http://localhost:3007",
+  "/api/auth": process.env.AUTH_SERVICE_URL || "http://localhost:3008",
 };
 
 // Set up proxy middleware for each route

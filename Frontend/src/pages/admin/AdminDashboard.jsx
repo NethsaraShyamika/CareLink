@@ -1,15 +1,16 @@
 import { useState } from "react";
 import PatientManagement from "./PatientManagement";
 import DoctorManagement from "./DoctorManegement";
+import AdminPaymentsManager from "./Adminpaymentmanager";
 import { useNavigate } from "react-router-dom";
 
 const TABS = [
   { id: "overview", icon: "⚡", label: "Overview" },
   { id: "patients", icon: "🧑‍🤝‍🧑", label: "Patient Management" },
   { id: "doctors", icon: "🩺", label: "Doctor Management" },
-  { id: "appointments", icon: "📅", label: "Appointments" },
+  { id: "appointments", icon: "📅", label: "Appointment Management" },
   { id: "payments", icon: "💳", label: "Payment Management" },
-  { id: "notifications", icon: "🔔", label: "Notifications", badge: "5" },
+  { id: "notifications", icon: "🔔", label: "Notifications"},
 ];
 
 const STATS = [
@@ -27,25 +28,12 @@ const USERS = [
   { name: "Sachini Bandara", email: "sachini@gmail.com", role: "Patient", status: "Active", joined: "Apr 8, 2026", avatar: "SB", color: "#ec4899" },
 ];
 
-const DOCTORS = [
-  { name: "Dr. Ruwan Jayasinghe", specialty: "Cardiologist", hospital: "Colombo National Hospital", docs: "Uploaded", avatar: "RJ", color: "#f59e0b" },
-  { name: "Dr. Priya Mendis", specialty: "Dermatologist", hospital: "Asiri Medical Centre", docs: "Uploaded", avatar: "PM", color: "#a855f7" },
-  { name: "Dr. Chamara Wijesinghe", specialty: "Neurologist", hospital: "Lanka Hospital", docs: "Pending", avatar: "CW", color: "#0ea5e9" },
-];
-
 const APPOINTMENTS = [
   { id: "APT-089", doctor: "Dr. Amali Silva", patient: "Kavindu Perera", date: "Apr 14, 2026", time: "10:00 AM", status: "Confirmed", type: "Video" },
   { id: "APT-090", doctor: "Dr. Ruwan J.", patient: "Nimal Fernando", date: "Apr 14, 2026", time: "11:30 AM", status: "Pending", type: "Video" },
   { id: "APT-091", doctor: "Dr. Priya M.", patient: "Sachini Bandara", date: "Apr 14, 2026", time: "02:00 PM", status: "Confirmed", type: "Video" },
   { id: "APT-088", doctor: "Dr. Amali Silva", patient: "Tharushi K.", date: "Apr 13, 2026", time: "09:00 AM", status: "Completed", type: "Video" },
   { id: "APT-087", doctor: "Dr. Chamara W.", patient: "Lasith P.", date: "Apr 13, 2026", time: "03:30 PM", status: "Cancelled", type: "Video" },
-];
-
-const PAYMENTS = [
-  { id: "PAY-001", patient: "Kavindu Perera", doctor: "Dr. Amali Silva", amount: "LKR 2,500", date: "Apr 14", status: "Success" },
-  { id: "PAY-002", patient: "Sachini Bandara", doctor: "Dr. Priya M.", amount: "LKR 3,000", date: "Apr 14", status: "Success" },
-  { id: "PAY-003", patient: "Nimal Fernando", doctor: "Dr. Ruwan J.", amount: "LKR 2,000", date: "Apr 13", status: "Pending" },
-  { id: "PAY-004", patient: "Tharushi K.", doctor: "Dr. Amali Silva", amount: "LKR 2,500", date: "Apr 13", status: "Failed" },
 ];
 
 const NOTIFICATIONS = [
@@ -61,15 +49,8 @@ const CHART_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "S
 
 function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
-  const [allUsers] = useState(USERS);
-  const [userList, setUserList] = useState(USERS.filter((u) => u.role !== "Patient"));
-  const [doctorList, setDoctorList] = useState(USERS.filter((u) => u.role === "Doctor"));
+  const [userList] = useState(USERS.filter((u) => u.role !== "Patient"));
   const navigate = useNavigate();
-
-  const handleVerify = (name, action) => {
-    setDoctorList((prev) => prev.filter((d) => d.name !== name));
-    alert(`Dr. ${name} has been ${action === "approve" ? "✅ approved" : "❌ rejected"}`);
-  };
 
   const statusBadge = (status) => {
     const map = {
@@ -111,7 +92,7 @@ function AdminDashboard() {
           {TABS.map((tab) => (
             <div
               key={tab.id}
-              onClick={() => (tab.id === "payments" ? navigate("/admin/payments") : setActiveTab(tab.id))}
+              onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium mb-0.5 transition-all cursor-pointer ${
                 activeTab === tab.id
                   ? "bg-sky-500/15 text-white border border-sky-500/20"
@@ -121,9 +102,7 @@ function AdminDashboard() {
               <span className="text-base w-5 text-center">{tab.icon}</span>
               {tab.label}
               {tab.badge && (
-                <span className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                  tab.badgeGreen ? "bg-green-500/15 text-green-400 border border-green-500/20" : "bg-red-500/15 text-red-400 border border-red-500/20"
-                }`}>
+                <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/20">
                   {tab.badge}
                 </span>
               )}
@@ -138,7 +117,7 @@ function AdminDashboard() {
           </div>
         </nav>
 
-        {/* Sidebar Footer (Tailwind only) */}
+        {/* Sidebar Footer */}
         <div className="px-6 pt-4 pb-6 border-t border-white/10 mt-auto">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold">A</div>
@@ -202,7 +181,6 @@ function AdminDashboard() {
 
             {/* Charts & Notifications */}
             <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-5">
-              {/* Chart Panel */}
               <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
                 <div className="px-5 py-4 border-b border-white/10 flex justify-between items-center">
                   <div className="font-syne text-sm font-bold">📈 Appointments This Year</div>
@@ -224,7 +202,6 @@ function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Recent Notifications */}
               <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
                 <div className="px-5 py-4 border-b border-white/10 flex justify-between items-center">
                   <div className="font-syne text-sm font-bold">🔔 Recent Activity</div>
@@ -246,56 +223,10 @@ function AdminDashboard() {
           </>
         )}
 
-        {/* USERS TAB */}
-        {activeTab === "users" && (
-          <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-white/10 flex justify-between items-center">
-              <div className="font-syne text-sm font-bold">👥 Staff & Admins ({userList.length})</div>
-              <div className="text-xs text-sky-400 cursor-pointer">+ Add User</div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="text-left text-[11px] tracking-wide uppercase text-white/30 font-semibold border-b border-white/5">
-                  <tr>
-                    <th className="px-3 py-2">User</th>
-                    <th className="px-3 py-2">Role</th>
-                    <th className="px-3 py-2">Status</th>
-                    <th className="px-3 py-2">Joined</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {userList.map((u, i) => (
-                    <tr key={i} className="border-b border-white/5 last:border-0 hover:bg-white/5">
-                      <td className="px-3 py-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold" style={{ background: `${u.color}22`, color: u.color }}>{u.avatar}</div>
-                          <div>
-                            <div className="text-sm font-medium">{u.name}</div>
-                            <div className="text-xs text-white/35">{u.email}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-3 py-3">
-                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${u.role === "Doctor" ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" : "bg-white/5 text-white/40 border border-white/10"}`}>
-                          {u.role}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${statusBadge(u.status)}`}>● {u.status}</span>
-                      </td>
-                      <td className="px-3 py-3 text-xs text-white/45">{u.createdAt ? new Date(u.createdAt).toLocaleDateString() : u.joined}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
         {/* PATIENT MANAGEMENT TAB */}
         {activeTab === "patients" && <PatientManagement />}
 
-        {/* DOCTOR VERIFICATION TAB */}
+        {/* DOCTOR MANAGEMENT TAB */}
         {activeTab === "doctors" && <DoctorManagement />}
 
         {/* APPOINTMENTS TAB */}
@@ -342,56 +273,8 @@ function AdminDashboard() {
           </div>
         )}
 
-        {/* PAYMENTS TAB */}
-        {activeTab === "payments" && (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-              {[
-                { label: "Total Revenue", value: "LKR 184K", icon: "💰", color: "#22c55e" },
-                { label: "Successful", value: "342", icon: "✅", color: "#0ea5e9" },
-                { label: "Failed/Pending", value: "18", icon: "⚠️", color: "#f59e0b" },
-              ].map((s, i) => (
-                <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-5">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg mb-3.5" style={{ background: `${s.color}18` }}>{s.icon}</div>
-                  <div className="font-syne text-3xl font-extrabold tracking-tight mb-1">{s.value}</div>
-                  <div className="text-xs text-white/40 font-medium">{s.label}</div>
-                </div>
-              ))}
-            </div>
-            <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-              <div className="px-5 py-4 border-b border-white/10 flex justify-between items-center">
-                <div className="font-syne text-sm font-bold">💳 Payment Transactions</div>
-                <div className="text-xs text-sky-400 cursor-pointer">Export CSV</div>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="text-left text-[11px] tracking-wide uppercase text-white/30 font-semibold border-b border-white/5">
-                    <tr>
-                      <th className="px-3 py-2">Payment ID</th>
-                      <th className="px-3 py-2">Patient</th>
-                      <th className="px-3 py-2">Doctor</th>
-                      <th className="px-3 py-2">Amount</th>
-                      <th className="px-3 py-2">Date</th>
-                      <th className="px-3 py-2">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {PAYMENTS.map((p, i) => (
-                      <tr key={i} className="border-b border-white/5 last:border-0 hover:bg-white/5">
-                        <td className="px-3 py-3 text-sky-400 font-semibold text-xs">{p.id}</td>
-                        <td className="px-3 py-3 text-sm">{p.patient}</td>
-                        <td className="px-3 py-3 text-white/60 text-sm">{p.doctor}</td>
-                        <td className="px-3 py-3 text-sm font-semibold">{p.amount}</td>
-                        <td className="px-3 py-3 text-white/45 text-xs">{p.date}</td>
-                        <td className="px-3 py-3"><span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${statusBadge(p.status)}`}>● {p.status}</span></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </>
-        )}
+        {/* PAYMENT MANAGEMENT TAB */}
+        {activeTab === "payments" && <AdminPaymentsManager />}
 
         {/* NOTIFICATIONS TAB */}
         {activeTab === "notifications" && (

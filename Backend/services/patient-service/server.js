@@ -26,7 +26,7 @@ app.locals.JWT_SECRET = JWT_SECRET;
 app.get('/debug/config', (req, res) => {
     res.json({
         jwt_secret: JWT_SECRET,
-        port: 5003,
+        port: 3001,
         mongo_uri: process.env.MONGODB_URI ? 'Set' : 'Not set'
     });
 });
@@ -72,7 +72,7 @@ app.get('/health', (req, res) => {
     res.json({ 
         status: 'OK', 
         service: 'patient-service',
-        port: 5003,
+        port: 3001,
         jwt_secret: JWT_SECRET,
         database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'
     });
@@ -80,7 +80,7 @@ app.get('/health', (req, res) => {
 
 
 // Use only MONGODB_URI from .env for safety
-const PORT = process.env.PORT || 5003;
+const PORT = process.env.PORT || 3001;
 const MONGODB_URI = process.env.MONGODB_URI;
 if (!MONGODB_URI) {
     console.error('❌ MONGODB_URI is not set in environment variables.');
@@ -90,7 +90,6 @@ if (!MONGODB_URI) {
 mongoose.connect(MONGODB_URI)
     .then(() => {
         console.log('✅ Connected to MongoDB');
-        console.log('🔐 JWT_SECRET:', JWT_SECRET);
         app.listen(PORT, () => {
             console.log(`🚀 Patient service running on http://localhost:${PORT}`);
             console.log(`📋 Get token: http://localhost:${PORT}/dev/token/patient123`);

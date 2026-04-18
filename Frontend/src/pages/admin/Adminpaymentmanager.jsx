@@ -1,223 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap');
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  .cl-admin {
-    min-height: 100vh;
-    background: #070b12;
-    color: #e8edf5;
-    font-family: 'DM Sans', sans-serif;
-    display: flex;
-  }
-
-  /* ── SIDEBAR ── */
-  .cl-sidebar {
-    width: 260px;
-    min-height: 100vh;
-    background: rgba(255,255,255,0.02);
-    border-right: 1px solid rgba(255,255,255,0.06);
-    display: flex;
-    flex-direction: column;
-    padding: 28px 0;
-    position: fixed;
-    top: 0; left: 0; bottom: 0;
-    z-index: 100;
-  }
-
-  .cl-brand {
-    padding: 0 24px 32px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    margin-bottom: 16px;
-  }
-
-  .cl-brand-logo {
-    width: 40px; height: 40px;
-    background: linear-gradient(135deg, #0ea5e9, #2563eb);
-    border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 18px;
-    box-shadow: 0 0 20px rgba(14,165,233,0.3);
-    margin-bottom: 12px;
-  }
-
-  .cl-brand-name {
-    font-family: 'Syne', sans-serif;
-    font-size: 20px; font-weight: 800;
-    letter-spacing: -0.5px;
-  }
-
-  .cl-brand-name span { color: #0ea5e9; }
-
-  .cl-brand-badge {
-    display: inline-block;
-    margin-top: 4px;
-    padding: 2px 8px;
-    background: rgba(14,165,233,0.1);
-    border: 1px solid rgba(14,165,233,0.2);
-    border-radius: 20px;
-    font-size: 10px;
-    color: #0ea5e9;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    font-weight: 600;
-  }
-
-  .cl-nav { flex: 1; padding: 0 12px; }
-
-  .cl-nav-section {
-    font-size: 10px;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.25);
-    font-weight: 600;
-    padding: 0 12px;
-    margin: 20px 0 8px;
-  }
-
-  .cl-nav-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 11px 14px;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-    color: rgba(255,255,255,0.45);
-    font-size: 14px;
-    font-weight: 500;
-    margin-bottom: 2px;
-    position: relative;
-  }
-
-  .cl-nav-item:hover {
-    background: rgba(255,255,255,0.05);
-    color: rgba(255,255,255,0.85);
-  }
-
-  .cl-nav-item.active {
-    background: rgba(14,165,233,0.12);
-    color: #fff;
-    border: 1px solid rgba(14,165,233,0.2);
-  }
-
-  .cl-nav-item.active .cl-nav-icon { color: #0ea5e9; }
-
-  .cl-nav-icon { font-size: 16px; width: 20px; text-align: center; }
-
-  .cl-nav-badge {
-    margin-left: auto;
-    padding: 1px 7px;
-    background: rgba(239,68,68,0.15);
-    border: 1px solid rgba(239,68,68,0.25);
-    border-radius: 20px;
-    font-size: 10px;
-    color: #f87171;
-    font-weight: 700;
-  }
-
-  .cl-sidebar-footer {
-    padding: 16px 24px;
-    border-top: 1px solid rgba(255,255,255,0.06);
-    margin-top: 16px;
-  }
-
-  .cl-admin-user { display: flex; align-items: center; gap: 10px; }
-
-  .cl-admin-avatar {
-    width: 34px; height: 34px;
-    background: linear-gradient(135deg, #0ea5e9, #2563eb);
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px; font-weight: 700;
-  }
-
-  .cl-admin-info { flex: 1; }
-  .cl-admin-name { font-size: 13px; font-weight: 600; }
-  .cl-admin-role { font-size: 11px; color: rgba(255,255,255,0.35); }
-
-  /* ── MAIN ── */
-  .cl-main {
-    margin-left: 260px;
-    flex: 1;
-    padding: 32px;
-    min-height: 100vh;
-  }
-
-  .cl-topbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 32px;
-  }
-
-  .cl-page-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 24px; font-weight: 800;
-    letter-spacing: -0.5px;
-  }
-
-  .cl-page-sub {
-    font-size: 13px;
-    color: rgba(255,255,255,0.35);
-    margin-top: 2px;
-  }
-
-  .cl-topbar-right { display: flex; align-items: center; gap: 12px; }
-
-  .cl-live-chip {
-    display: flex; align-items: center; gap: 6px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 20px;
-    padding: 6px 14px;
-    font-size: 12px;
-    color: rgba(255,255,255,0.45);
-  }
-
-  .cl-live-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: #22c55e;
-    animation: pulse 1.4s ease-in-out infinite;
-  }
-
-  @keyframes pulse { 0%,100%{opacity:1;}50%{opacity:0.4;} }
-
-  .cl-search {
-    display: flex; align-items: center; gap: 8px;
-    padding: 9px 14px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
-    color: rgba(255,255,255,0.4);
-    font-size: 13px;
-  }
-
-  .cl-topbar-btn {
-    width: 38px; height: 38px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; font-size: 16px;
-    transition: all 0.2s;
-    position: relative;
-  }
-
-  .cl-topbar-btn:hover { background: rgba(255,255,255,0.08); }
-
-  .cl-notif-dot {
-    position: absolute; top: 6px; right: 6px;
-    width: 7px; height: 7px;
-    background: #ef4444; border-radius: 50%;
-    border: 2px solid #070b12;
-  }
-
-  /* ── STATS ── */
   .cl-stats {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -276,7 +61,6 @@ const styles = `
     margin-top: 4px;
   }
 
-  /* ── BREAKDOWN ── */
   .cl-breakdown {
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.07);
@@ -320,16 +104,15 @@ const styles = `
 
   .cl-leg-dot { width: 7px; height: 7px; border-radius: 50%; }
 
-  /* ── PANEL ── */
   .cl-panel {
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.07);
     border-radius: 20px;
     overflow: hidden;
-    animation: fadeIn 0.3s ease forwards;
+    animation: pmFadeIn 0.3s ease forwards;
   }
 
-  @keyframes fadeIn {
+  @keyframes pmFadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: translateY(0); }
   }
@@ -350,7 +133,6 @@ const styles = `
     display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   }
 
-  /* ── TOOLBAR CONTROLS ── */
   .cl-select {
     padding: 7px 12px;
     background: rgba(255,255,255,0.05);
@@ -396,7 +178,6 @@ const styles = `
 
   .cl-refresh-btn:hover { background: rgba(139,92,246,0.22); }
 
-  /* ── TABLE ── */
   .cl-table { width: 100%; border-collapse: collapse; }
 
   .cl-table th {
@@ -418,14 +199,10 @@ const styles = `
   }
 
   .cl-table tr:last-child td { border-bottom: none; }
-
   .cl-table tbody tr { cursor: pointer; transition: background 0.15s; }
-
   .cl-table tbody tr:hover td { background: rgba(139,92,246,0.06); }
-
   .cl-table tbody tr.row-selected td { background: rgba(139,92,246,0.1); }
 
-  /* ── BADGES ── */
   .cl-badge {
     padding: 3px 10px;
     border-radius: 20px;
@@ -441,14 +218,12 @@ const styles = `
   .cl-badge-gray   { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.1); }
   .cl-badge-purple { background: rgba(139,92,246,0.12); color: #a78bfa; border: 1px solid rgba(139,92,246,0.25); }
 
-  /* ── MONO ── */
   .cl-mono {
     font-family: 'JetBrains Mono', 'Fira Code', monospace;
     font-size: 12px;
     color: rgba(255,255,255,0.5);
   }
 
-  /* ── PAGINATION ── */
   .cl-pg {
     display: flex; align-items: center; justify-content: space-between;
     padding: 14px 22px;
@@ -457,7 +232,6 @@ const styles = `
   }
 
   .cl-pg-info { font-size: 12px; color: rgba(255,255,255,0.3); }
-
   .cl-pg-btns { display: flex; gap: 5px; }
 
   .cl-pg-btn {
@@ -486,13 +260,12 @@ const styles = `
 
   .cl-pg-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-  /* ── DRAWER ── */
   .cl-drawer-overlay {
     position: fixed; inset: 0;
     background: rgba(0,0,0,0.5);
     z-index: 200;
     backdrop-filter: blur(3px);
-    animation: fadeIn 0.2s ease;
+    animation: pmFadeIn 0.2s ease;
   }
 
   .cl-drawer {
@@ -504,10 +277,10 @@ const styles = `
     overflow-y: auto;
     display: flex; flex-direction: column;
     box-shadow: -8px 0 32px rgba(0,0,0,0.3);
-    animation: slideIn 0.25s ease;
+    animation: pmSlideIn 0.25s ease;
   }
 
-  @keyframes slideIn {
+  @keyframes pmSlideIn {
     from { transform: translateX(100%); }
     to   { transform: translateX(0); }
   }
@@ -521,17 +294,8 @@ const styles = `
     z-index: 1;
   }
 
-  .cl-dhead-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 15px; font-weight: 700;
-  }
-
-  .cl-dhead-sub {
-    font-size: 11px;
-    color: rgba(255,255,255,0.3);
-    font-family: monospace;
-    margin-top: 2px;
-  }
+  .cl-dhead-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; }
+  .cl-dhead-sub { font-size: 11px; color: rgba(255,255,255,0.3); font-family: monospace; margin-top: 2px; }
 
   .cl-dclose {
     width: 28px; height: 28px;
@@ -562,11 +326,7 @@ const styles = `
     letter-spacing: -1px;
   }
 
-  .cl-amt-hero .dt {
-    font-size: 12px;
-    color: rgba(255,255,255,0.3);
-    margin-top: 4px;
-  }
+  .cl-amt-hero .dt { font-size: 12px; color: rgba(255,255,255,0.3); margin-top: 4px; }
 
   .cl-dgroup { margin-bottom: 18px; }
 
@@ -587,25 +347,11 @@ const styles = `
   }
 
   .cl-drow:nth-child(odd) { background: rgba(255,255,255,0.03); }
-
-  .cl-drow .k {
-    font-size: 12px;
-    color: rgba(255,255,255,0.4);
-    font-weight: 500;
-    flex-shrink: 0;
-  }
-
-  .cl-drow .v {
-    font-size: 12px;
-    color: #e8edf5;
-    font-weight: 600;
-    text-align: right;
-    word-break: break-all;
-    font-family: monospace;
-  }
+  .cl-drow .k { font-size: 12px; color: rgba(255,255,255,0.4); font-weight: 500; flex-shrink: 0; }
+  .cl-drow .v { font-size: 12px; color: #e8edf5; font-weight: 600; text-align: right; word-break: break-all; font-family: monospace; }
 `;
 
-const API = (import.meta.env.VITE_API_BASE || "http://localhost:5000") + "/api/payments";
+const API = (import.meta.env.VITE_API_BASE || "http://localhost:3005") + "/api/payments";
 const getToken = () => localStorage.getItem("token");
 
 const STATUS_MAP = {
@@ -620,19 +366,9 @@ const STATUS_COLORS = {
   completed: "#22c55e",
   pending:   "#facc15",
   failed:    "#f87171",
-  cancelled:  "rgba(255,255,255,0.25)",
+  cancelled: "rgba(255,255,255,0.25)",
   refunded:  "#a78bfa",
 };
-
-const TABS = [
-  { id: "overview", icon: "⚡", label: "Overview" },
-  { id: "users", icon: "👥", label: "User Management" },
-  { id: "patients", icon: "🧑‍🤝‍🧑", label: "Patient Management" },
-  { id: "doctors", icon: "🩺", label: "Doctor Verification", badge: "3" },
-  { id: "appointments", icon: "📅", label: "Appointments" },
-  { id: "payments", icon: "💳", label: "Payment Management" },
-  { id: "notifications", icon: "🔔", label: "Notifications", badge: "5" },
-];
 
 const fmt   = (n) => "LKR " + Number(n).toLocaleString("en-US");
 const fmtD  = (d) => new Date(d).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" });
@@ -697,16 +433,13 @@ function Drawer({ payment, onClose }) {
 
 /* ── Main Component ── */
 function AdminPaymentsManager() {
-  const navigate = useNavigate();
-  const [payments, setPayments]   = useState([]);
-  const [total, setTotal]         = useState(0);
-  const [page, setPage]           = useState(1);
-  const [loading, setLoading]     = useState(true);
-  const [filters, setFilters]     = useState({ status: "", gateway: "" });
-  const [search, setSearch]       = useState("");
-  const [selected, setSelected]   = useState(null);
-  const activeTab = "payments";
-  const setActiveTab = (id) => navigate("/admin/dashboard");
+  const [payments, setPayments] = useState([]);
+  const [total, setTotal]       = useState(0);
+  const [page, setPage]         = useState(1);
+  const [loading, setLoading]   = useState(true);
+  const [filters, setFilters]   = useState({ status: "", gateway: "" });
+  const [search, setSearch]     = useState("");
+  const [selected, setSelected] = useState(null);
   const limit = 15;
 
   const load = useCallback(() => {
@@ -748,8 +481,8 @@ function AdminPaymentsManager() {
     { icon: "💰", label: "Platform Revenue", value: fmt(revenue),  sub: "Completed txns",   color: "#7c3aed", glow: "#7c3aed" },
     { icon: "⏳", label: "Pending",          value: pending,        sub: "Awaiting gateway", color: "#f59e0b", glow: "#f59e0b" },
     { icon: "✕",  label: "Failed",           value: failed,         sub: "Needs attention",  color: "#ef4444", glow: "#ef4444" },
-    { icon: "↩",  label: "Refunded",         value: fmt(refunded), sub: "Total refunds",    color: "#8b5cf6", glow: "#8b5cf6" },
-    { icon: "📋", label: "Total Records",    value: total,          sub: "All time",         color: "#0ea5e9", glow: "#0ea5e9" },
+    { icon: "↩",  label: "Refunded",         value: fmt(refunded),  sub: "Total refunds",    color: "#8b5cf6", glow: "#8b5cf6" },
+    { icon: "📋", label: "Total Records",    value: total,           sub: "All time",         color: "#0ea5e9", glow: "#0ea5e9" },
   ];
 
   /* ── Status breakdown ── */
@@ -772,260 +505,162 @@ function AdminPaymentsManager() {
       <style>{styles}</style>
       <Drawer payment={selected} onClose={() => setSelected(null)} />
 
-      <div className="cl-admin">
-
-        {/* ── SIDEBAR ── */}
-        <aside className="w-64 min-h-screen bg-white/5 border-r border-white/10 fixed left-0 top-0 bottom-0 flex flex-col py-7 z-10">
-          {/* Brand */}
-          <div className="px-6 pb-8 border-b border-white/10 mb-4">
-            <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-blue-600 rounded-xl flex items-center justify-center text-lg shadow-lg shadow-sky-500/30 mb-3">
-              🏥
-            </div>
-            <div className="font-syne text-xl font-extrabold tracking-tight">
-              Care<span className="text-sky-500">Link</span>
-            </div>
-            <div className="inline-block mt-1 px-2 py-0.5 bg-sky-500/10 border border-sky-500/20 rounded-full text-[10px] text-sky-400 uppercase font-semibold tracking-wider">
-              Admin Portal
-            </div>
+      {/* Stats */}
+      <div className="cl-stats">
+        {METRICS.map((m, i) => (
+          <div className="cl-stat-card" key={i}>
+            <div className="cl-stat-glow" style={{ background: m.glow }} />
+            <div className="cl-stat-icon" style={{ background: `${m.color}18` }}>{m.icon}</div>
+            <div className="cl-stat-value">{m.value}</div>
+            <div className="cl-stat-label">{m.label}</div>
+            <div className="cl-stat-sub">{m.sub}</div>
           </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 px-3">
-            <div className="text-[10px] tracking-wider uppercase text-white/25 font-semibold px-3 mb-2 mt-5">Main</div>
-            {TABS.map((tab) => (
-              <div
-                key={tab.id}
-                onClick={() => (tab.id === "payments" ? navigate("/admin/payments") : setActiveTab(tab.id))}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium mb-0.5 transition-all cursor-pointer ${
-                  activeTab === tab.id
-                    ? "bg-sky-500/15 text-white border border-sky-500/20"
-                    : "text-white/45 hover:bg-white/5 hover:text-white/85"
-                }`}
-              >
-                <span className="text-base w-5 text-center">{tab.icon}</span>
-                {tab.label}
-                {tab.badge && (
-                  <span className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                    tab.badgeGreen ? "bg-green-500/15 text-green-400 border border-green-500/20" : "bg-red-500/15 text-red-400 border border-red-500/20"
-                  }`}>
-                    {tab.badge}
-                  </span>
-                )}
-              </div>
-            ))}
-            <div className="text-[10px] tracking-wider uppercase text-white/25 font-semibold px-3 mt-6 mb-2">System</div>
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/45 hover:bg-white/5 hover:text-white/85 transition-all cursor-pointer">
-              <span className="text-base w-5 text-center">⚙️</span> Settings
-            </div>
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/45 hover:bg-white/5 hover:text-white/85 transition-all cursor-pointer">
-              <span className="text-base w-5 text-center">📊</span> Reports
-            </div>
-          </nav>
-
-          {/* Sidebar Footer (Tailwind only) */}
-          <div className="px-6 pt-4 pb-6 border-t border-white/10 mt-auto">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold">A</div>
-              <div className="flex-1">
-                <div className="text-sm font-semibold text-gray-100">Admin</div>
-                <div className="text-xs text-gray-400">Super Administrator</div>
-              </div>
-              <button
-                onClick={() => {
-                  if (window.confirm("Are you sure you want to logout?")) navigate("/login");
-                }}
-                title="Logout"
-                className="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center text-sm transition-all duration-200 hover:bg-red-500/20 hover:border-red-500/40 flex-shrink-0"
-              >
-                🚪
-              </button>
-            </div>
-          </div>
-        </aside>
-
-        {/* ── MAIN ── */}
-        <main className="cl-main">
-
-          {/* Topbar */}
-          <div className="cl-topbar">
-            <div>
-              <div className="cl-page-title">💳 Payments</div>
-              <div className="cl-page-sub">
-                CareLink Admin —{" "}
-                {new Date().toLocaleDateString("en-GB", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-              </div>
-            </div>
-            <div className="cl-topbar-right">
-              <div className="cl-live-chip">
-                <span className="cl-live-dot" /> Live · Stripe Sandbox
-              </div>
-              <div className="cl-search">🔍 Search...</div>
-              <div className="cl-topbar-btn">
-                🔔 <span className="cl-notif-dot" />
-              </div>
-              <div className="cl-topbar-btn">👤</div>
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="cl-stats">
-            {METRICS.map((m, i) => (
-              <div className="cl-stat-card" key={i}>
-                <div className="cl-stat-glow" style={{ background: m.glow }} />
-                <div className="cl-stat-icon" style={{ background: `${m.color}18` }}>{m.icon}</div>
-                <div className="cl-stat-value">{m.value}</div>
-                <div className="cl-stat-label">{m.label}</div>
-                <div className="cl-stat-sub">{m.sub}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Status Breakdown */}
-          <div className="cl-breakdown">
-            <span className="cl-breakdown-title">Status Distribution</span>
-            <div className="cl-bar-track">
-              {statusBreakdown.map(s => (
-                <div
-                  key={s.key}
-                  className="cl-bar-seg"
-                  style={{ width: `${(s.count / totalCount) * 100}%`, background: s.color }}
-                  title={`${s.label}: ${s.count}`}
-                />
-              ))}
-            </div>
-            <div className="cl-legend">
-              {statusBreakdown.filter(s => s.count > 0).map(s => (
-                <div key={s.key} className="cl-leg-item">
-                  <span className="cl-leg-dot" style={{ background: s.color }} />
-                  {s.label} ({s.count})
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Panel */}
-          <div className="cl-panel">
-            <div className="cl-panel-header">
-              <div className="cl-panel-title">💳 All Payments</div>
-              <div className="cl-panel-toolbar">
-                <select
-                  className="cl-select"
-                  value={filters.status}
-                  onChange={e => setFilter("status", e.target.value)}
-                >
-                  <option value="">All Statuses</option>
-                  {Object.entries(STATUS_MAP).map(([k, v]) => (
-                    <option key={k} value={k}>{v.label}</option>
-                  ))}
-                </select>
-
-                <select
-                  className="cl-select"
-                  value={filters.gateway}
-                  onChange={e => setFilter("gateway", e.target.value)}
-                >
-                  <option value="">All Gateways</option>
-                  <option value="stripe">Stripe</option>
-                  <option value="payhere">PayHere</option>
-                </select>
-
-                <input
-                  className="cl-search-input"
-                  placeholder="Search by ID, patient, order…"
-                  value={search}
-                  onChange={e => { setSearch(e.target.value); setPage(1); }}
-                />
-
-                <button className="cl-refresh-btn" onClick={load}>⟳ Refresh</button>
-              </div>
-            </div>
-
-            <div style={{ overflowX: "auto" }}>
-              <table className="cl-table">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Date</th>
-                    <th>Patient</th>
-                    <th>Doctor</th>
-                    <th>Gateway</th>
-                    <th>Amount</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr>
-                      <td colSpan={7} style={{ textAlign: "center", padding: "40px", color: "rgba(255,255,255,0.3)" }}>
-                        Loading payments…
-                      </td>
-                    </tr>
-                  ) : displayed.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} style={{ textAlign: "center", padding: "40px", color: "rgba(255,255,255,0.3)" }}>
-                        No records match the current filters
-                      </td>
-                    </tr>
-                  ) : (
-                    displayed.map((p, i) => {
-                      const s = STATUS_MAP[p.status] || STATUS_MAP.pending;
-                      return (
-                        <tr
-                          key={p._id}
-                          className={selected?._id === p._id ? "row-selected" : ""}
-                          onClick={() => setSelected(p)}
-                        >
-                          <td>
-                            <span className="cl-mono" style={{ color: "#a78bfa", fontWeight: 700 }}>
-                              #{p._id.slice(-7).toUpperCase()}
-                            </span>
-                          </td>
-                          <td style={{ color: "rgba(255,255,255,0.45)", fontSize: "12px" }}>{fmtD(p.createdAt)}</td>
-                          <td className="cl-mono" title={p.patientId}>{String(p.patientId).slice(-6).toUpperCase()}</td>
-                          <td className="cl-mono" title={p.doctorId}>{String(p.doctorId).slice(-6).toUpperCase()}</td>
-                          <td style={{ fontSize: "13px", textTransform: "capitalize", color: "rgba(255,255,255,0.5)" }}>
-                            {p.gateway}
-                          </td>
-                          <td style={{ fontWeight: 600 }}>{fmt(p.amount)}</td>
-                          <td><span className={`cl-badge ${s.badge}`}>● {s.label}</span></td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {totalPages > 1 && (
-              <div className="cl-pg">
-                <div className="cl-pg-info">
-                  Page {page} of {totalPages} · {total} total
-                </div>
-                <div className="cl-pg-btns">
-                  <button className="cl-pg-btn" disabled={page === 1} onClick={() => setPage(1)}>«</button>
-                  <button className="cl-pg-btn" disabled={page === 1} onClick={() => setPage(p => p - 1)}>‹</button>
-                  {paginationPages.map(n => (
-                    <button
-                      key={n}
-                      className={`cl-pg-btn${page === n ? " active" : ""}`}
-                      onClick={() => setPage(n)}
-                    >
-                      {n}
-                    </button>
-                  ))}
-                  <button className="cl-pg-btn" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>›</button>
-                  <button className="cl-pg-btn" disabled={page === totalPages} onClick={() => setPage(totalPages)}>»</button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <p style={{ marginTop: "12px", fontSize: "12px", color: "rgba(255,255,255,0.25)", textAlign: "center" }}>
-            Click any row to view full record · Admin access only · All times in local timezone
-          </p>
-
-        </main>
+        ))}
       </div>
+
+      {/* Status Breakdown */}
+      <div className="cl-breakdown">
+        <span className="cl-breakdown-title">Status Distribution</span>
+        <div className="cl-bar-track">
+          {statusBreakdown.map(s => (
+            <div
+              key={s.key}
+              className="cl-bar-seg"
+              style={{ width: `${(s.count / totalCount) * 100}%`, background: s.color }}
+              title={`${s.label}: ${s.count}`}
+            />
+          ))}
+        </div>
+        <div className="cl-legend">
+          {statusBreakdown.filter(s => s.count > 0).map(s => (
+            <div key={s.key} className="cl-leg-item">
+              <span className="cl-leg-dot" style={{ background: s.color }} />
+              {s.label} ({s.count})
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Panel */}
+      <div className="cl-panel">
+        <div className="cl-panel-header">
+          <div className="cl-panel-title">💳 All Payments</div>
+          <div className="cl-panel-toolbar">
+            <select
+              className="cl-select"
+              value={filters.status}
+              onChange={e => setFilter("status", e.target.value)}
+            >
+              <option value="">All Statuses</option>
+              {Object.entries(STATUS_MAP).map(([k, v]) => (
+                <option key={k} value={k}>{v.label}</option>
+              ))}
+            </select>
+
+            <select
+              className="cl-select"
+              value={filters.gateway}
+              onChange={e => setFilter("gateway", e.target.value)}
+            >
+              <option value="">All Gateways</option>
+              <option value="stripe">Stripe</option>
+              <option value="payhere">PayHere</option>
+            </select>
+
+            <input
+              className="cl-search-input"
+              placeholder="Search by ID, patient, order…"
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1); }}
+            />
+
+            <button className="cl-refresh-btn" onClick={load}>⟳ Refresh</button>
+          </div>
+        </div>
+
+        <div style={{ overflowX: "auto" }}>
+          <table className="cl-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Date</th>
+                <th>Patient</th>
+                <th>Doctor</th>
+                <th>Gateway</th>
+                <th>Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: "center", padding: "40px", color: "rgba(255,255,255,0.3)" }}>
+                    Loading payments…
+                  </td>
+                </tr>
+              ) : displayed.length === 0 ? (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: "center", padding: "40px", color: "rgba(255,255,255,0.3)" }}>
+                    No records match the current filters
+                  </td>
+                </tr>
+              ) : (
+                displayed.map((p) => {
+                  const s = STATUS_MAP[p.status] || STATUS_MAP.pending;
+                  return (
+                    <tr
+                      key={p._id}
+                      className={selected?._id === p._id ? "row-selected" : ""}
+                      onClick={() => setSelected(p)}
+                    >
+                      <td>
+                        <span className="cl-mono" style={{ color: "#a78bfa", fontWeight: 700 }}>
+                          #{p._id.slice(-7).toUpperCase()}
+                        </span>
+                      </td>
+                      <td style={{ color: "rgba(255,255,255,0.45)", fontSize: "12px" }}>{fmtD(p.createdAt)}</td>
+                      <td className="cl-mono" title={p.patientId}>{String(p.patientId).slice(-6).toUpperCase()}</td>
+                      <td className="cl-mono" title={p.doctorId}>{String(p.doctorId).slice(-6).toUpperCase()}</td>
+                      <td style={{ fontSize: "13px", textTransform: "capitalize", color: "rgba(255,255,255,0.5)" }}>
+                        {p.gateway}
+                      </td>
+                      <td style={{ fontWeight: 600 }}>{fmt(p.amount)}</td>
+                      <td><span className={`cl-badge ${s.badge}`}>● {s.label}</span></td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {totalPages > 1 && (
+          <div className="cl-pg">
+            <div className="cl-pg-info">
+              Page {page} of {totalPages} · {total} total
+            </div>
+            <div className="cl-pg-btns">
+              <button className="cl-pg-btn" disabled={page === 1} onClick={() => setPage(1)}>«</button>
+              <button className="cl-pg-btn" disabled={page === 1} onClick={() => setPage(p => p - 1)}>‹</button>
+              {paginationPages.map(n => (
+                <button
+                  key={n}
+                  className={`cl-pg-btn${page === n ? " active" : ""}`}
+                  onClick={() => setPage(n)}
+                >
+                  {n}
+                </button>
+              ))}
+              <button className="cl-pg-btn" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>›</button>
+              <button className="cl-pg-btn" disabled={page === totalPages} onClick={() => setPage(totalPages)}>»</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <p style={{ marginTop: "12px", fontSize: "12px", color: "rgba(255,255,255,0.25)", textAlign: "center" }}>
+        Click any row to view full record · Admin access only · All times in local timezone
+      </p>
     </>
   );
 }

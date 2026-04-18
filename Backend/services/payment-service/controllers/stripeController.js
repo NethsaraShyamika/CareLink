@@ -17,15 +17,20 @@ const FRONTEND_URL =
 export async function createStripeCheckoutSession(req, res) {
   try {
     const { appointmentId, doctorId, amount } = req.body;
-    const patientId = req.user.id;
+    const patientId = req.user?.id || req.user?._id || req.user?.userId;
 
-    if (!appointmentId || !doctorId || !amount) {
+    if (!patientId || !appointmentId || !doctorId || !amount) {
       return res.status(400).json({
-        message: "appointmentId, doctorId, and amount are required.",
+        message: "patientId, appointmentId, doctorId, and amount are required.",
       });
     }
 
-    const stripeAmount = Math.round(parseFloat(amount) * 100);
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      return res.status(400).json({ message: "Invalid amount provided." });
+    }
+
+    const stripeAmount = Math.round(parsedAmount * 100);
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -47,9 +52,9 @@ export async function createStripeCheckoutSession(req, res) {
       cancel_url: `${FRONTEND_URL}/payment/fail`,
 
       metadata: {
-        patientId: patientId.toString(),
-        appointmentId: appointmentId.toString(),
-        doctorId: doctorId.toString(),
+        patientId: patientId?.toString() || "",
+        appointmentId: appointmentId?.toString() || "",
+        doctorId: doctorId?.toString() || "",
       },
     });
 
