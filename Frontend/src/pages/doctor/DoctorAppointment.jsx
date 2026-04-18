@@ -1,207 +1,450 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import {
-  Calendar,
-  Users,
-  Video,
-  FileText,
-  Settings,
-  LogOut,
-  Bell,
-  Check,
-  X,
-  Clock,
-  User,
-  Phone,
-  RefreshCw,
-  Search,
-  Eye,
-  Home,
-  Activity,
-  Circle,
-} from "lucide-react";
+import DoctorSidebar from "./Doctorsidebar";
 
-// ─── API Base URL ─────────────────────────────────────────────────────────────
-const APPT_API = import.meta.env.VITE_APPOINTMENT_API_URL || "http://localhost:5002/api";
-const DR_API   = import.meta.env.VITE_DOCTOR_API_URL      || "http://localhost:3002/api";
+// ─── API Base URLs ─────────────────────────────────────────────────────────────
+import { API_GATEWAY } from "../../utils/api";
+const APPT_API = import.meta.env.VITE_API_GATEWAY_URL || API_GATEWAY;
+const DR_API   = import.meta.env.VITE_API_GATEWAY_URL || API_GATEWAY;
 
-// ─── Status helpers ───────────────────────────────────────────────────────────
-const STATUS_META = {
-  confirmed: { label: "Confirmed", color: "bg-green-100 text-green-700", bar: "bg-green-500" },
-  pending:   { label: "Pending",   color: "bg-yellow-100 text-yellow-700", bar: "bg-yellow-500" },
-  completed: { label: "Completed", color: "bg-blue-100 text-blue-700", bar: "bg-blue-500" },
-  cancelled: { label: "Cancelled", color: "bg-red-100 text-red-700", bar: "bg-red-500" },
-  rejected:  { label: "Rejected",  color: "bg-red-100 text-red-700", bar: "bg-red-500" },
-  accepted:  { label: "Accepted",  color: "bg-indigo-100 text-indigo-700", bar: "bg-indigo-500" },
-  rescheduled: { label: "Rescheduled", color: "bg-orange-100 text-orange-700", bar: "bg-orange-500" },
+// ─── Scoped CSS ───────────────────────────────────────────────────────────────
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --primary: #2563EB;
+    --primary-light: #EFF6FF;
+    --accent: #4F46E5;
+    --accent-dark: #3730A3;
+    --accent-light: #E0E7FF;
+    --bg: #F9FAFB;
+    --surface: #FFFFFF;
+    --border: #E5E7EB;
+    --border-soft: #F3F4F6;
+    --text: #111827;
+    --text-sec: #6B7280;
+    --text-muted: #9CA3AF;
+    --success: #22C55E;
+    --success-bg: #DCFCE7;
+    --success-text: #15803D;
+    --warning: #F59E0B;
+    --warning-bg: #FEF3C7;
+    --warning-text: #B45309;
+    --error: #EF4444;
+    --error-bg: #FEE2E2;
+    --error-text: #991B1B;
+    --info: #3B82F6;
+    --info-bg: #DBEAFE;
+    --info-text: #1D4ED8;
+    --r-md: 10px;
+    --r-lg: 14px;
+    --r-xl: 18px;
+    --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+    --shadow-md: 0 4px 16px rgba(0,0,0,.08);
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Layout */
+  .appt-dash { display: flex; height: 100vh; overflow: hidden; }
+  .appt-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+  .appt-content { flex: 1; overflow-y: auto; padding: 28px 32px; background: var(--bg); }
+
+  /* Topbar */
+  .appt-topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex; align-items: center; gap: 16px;
+    flex-shrink: 0;
+  }
+  .appt-tb-title { font-size: 18px; font-weight: 800; letter-spacing: -0.4px; }
+  .appt-tb-date { font-size: 12px; color: var(--text-sec); margin-top: 2px; }
+  .appt-tb-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .appt-icon-btn {
+    width: 38px; height: 38px; border-radius: var(--r-md);
+    background: var(--bg); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--text-sec); position: relative;
+    transition: all .15s;
+  }
+  .appt-icon-btn:hover { background: var(--accent-light); color: var(--accent); border-color: #c7d2fe; }
+  .notif-dot {
+    position: absolute; top: 7px; right: 7px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--error); border: 1.5px solid #fff;
+  }
+
+  /* Stats */
+  .appt-stats-row {
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px; margin-bottom: 26px;
+  }
+  .appt-stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r-xl); padding: 20px 22px;
+    box-shadow: var(--shadow); position: relative; overflow: hidden;
+    transition: box-shadow .2s, transform .2s;
+  }
+  .appt-stat-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+  .appt-stat-card::after {
+    content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .sc-indigo::after { background: linear-gradient(90deg, #4F46E5, #3730A3); }
+  .sc-amber::after  { background: linear-gradient(90deg, #F59E0B, #D97706); }
+  .sc-green::after  { background: linear-gradient(90deg, #22C55E, #16A34A); }
+  .sc-blue::after   { background: linear-gradient(90deg, #3B82F6, #2563EB); }
+  .sc-red::after    { background: linear-gradient(90deg, #EF4444, #DC2626); }
+
+  .appt-stat-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+  .appt-stat-icon {
+    width: 44px; height: 44px; border-radius: var(--r-md);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .appt-stat-val { font-size: 30px; font-weight: 800; letter-spacing: -0.8px; line-height: 1; margin-bottom: 4px; }
+  .appt-stat-lbl { font-size: 12.5px; color: var(--text-sec); font-weight: 500; }
+  .appt-stat-trend { font-size: 11px; font-weight: 600; margin-top: 6px; }
+  .trend-up  { color: var(--success-text); }
+  .trend-neu { color: var(--text-muted); }
+
+  /* Tabs */
+  .appt-tabs {
+    display: flex; gap: 4px; margin-bottom: 20px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r-lg); padding: 4px;
+    width: fit-content; flex-wrap: wrap;
+  }
+  .appt-tab {
+    padding: 8px 16px; border-radius: var(--r-md);
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    color: var(--text-sec); transition: all .18s; white-space: nowrap;
+    border: none; background: none; font-family: inherit;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .appt-tab:hover { color: var(--text); background: var(--bg); }
+  .appt-tab.active { background: var(--accent); color: #fff; box-shadow: 0 2px 8px rgba(79,70,229,.3); }
+  .appt-tab-count {
+    font-size: 10.5px; font-weight: 700; padding: 1px 7px;
+    border-radius: 99px; background: rgba(255,255,255,.25);
+  }
+  .appt-tab:not(.active) .appt-tab-count { background: var(--bg); color: var(--text-sec); }
+
+  /* Filter bar */
+  .appt-filter-bar {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 22px; flex-wrap: wrap;
+  }
+  .appt-search-wrap { position: relative; flex: 1; min-width: 240px; }
+  .appt-search-icon {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--text-muted); pointer-events: none;
+  }
+  .appt-search-input {
+    width: 100%; padding: 10px 14px 10px 38px;
+    border: 1px solid var(--border); border-radius: var(--r-md);
+    background: var(--surface); font-size: 13.5px;
+    color: var(--text); font-family: inherit;
+    transition: border-color .15s, box-shadow .15s; outline: none;
+  }
+  .appt-search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,.1); }
+
+  .appt-select {
+    padding: 10px 14px; border: 1px solid var(--border);
+    border-radius: var(--r-md); background: var(--surface);
+    font-size: 13px; color: var(--text); font-family: inherit;
+    cursor: pointer; outline: none;
+  }
+  .appt-select:focus { border-color: var(--accent); }
+
+  .appt-date-input {
+    padding: 10px 14px; border: 1px solid var(--border);
+    border-radius: var(--r-md); background: var(--surface);
+    font-size: 13px; color: var(--text); font-family: inherit;
+    outline: none;
+  }
+  .appt-date-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,.1); }
+
+  .appt-btn-refresh {
+    display: flex; align-items: center; gap: 7px;
+    padding: 10px 16px; border-radius: var(--r-md);
+    background: var(--accent); color: #fff;
+    border: none; cursor: pointer;
+    font-size: 13px; font-weight: 600; font-family: inherit;
+    transition: background .15s, transform .1s;
+  }
+  .appt-btn-refresh:hover { background: var(--accent-dark); }
+  .appt-btn-refresh:active { transform: scale(.97); }
+  .appt-btn-refresh:disabled { opacity: .7; pointer-events: none; }
+
+  /* Cards */
+  .appt-list { display: flex; flex-direction: column; gap: 10px; }
+  .appt-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r-xl);
+    box-shadow: var(--shadow); overflow: hidden;
+    transition: border-color .15s, box-shadow .2s, transform .15s;
+    animation: apptSlideIn .25s ease both;
+  }
+  .appt-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); border-color: #D1D5DB; }
+  @keyframes apptSlideIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .appt-card-inner { display: flex; align-items: stretch; }
+  .appt-accent-bar { width: 4px; flex-shrink: 0; }
+  .bar-pending    { background: var(--warning); }
+  .bar-accepted   { background: var(--primary); }
+  .bar-confirmed  { background: var(--success); }
+  .bar-completed  { background: var(--info); }
+  .bar-cancelled  { background: var(--error); }
+  .bar-rejected   { background: var(--error); }
+  .bar-rescheduled { background: var(--warning); }
+
+  .appt-body { flex: 1; padding: 16px 20px; display: flex; align-items: center; gap: 16px; min-width: 0; flex-wrap: wrap; }
+  .appt-av {
+    width: 48px; height: 48px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 800; flex-shrink: 0;
+  }
+  .appt-info { flex: 1; min-width: 0; }
+  .appt-name { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+  .appt-reason { font-size: 12.5px; color: var(--text-muted); margin-bottom: 6px; }
+  .appt-meta { display: flex; gap: 12px; font-size: 11.5px; color: var(--text-sec); flex-wrap: wrap; }
+  .appt-time-meta { display: flex; align-items: center; gap: 4px; }
+  .appt-badge-wrap { display: flex; align-items: center; }
+  .appt-actions { display: flex; align-items: center; gap: 8px; padding-right: 16px; }
+
+  /* Badges */
+  .badge {
+    font-size: 10.5px; font-weight: 700; padding: 3px 10px;
+    border-radius: 99px; flex-shrink: 0;
+  }
+  .b-pending    { background: var(--warning-bg); color: var(--warning-text); }
+  .b-accepted   { background: var(--info-bg); color: var(--info-text); }
+  .b-confirmed  { background: var(--success-bg); color: var(--success-text); }
+  .b-completed  { background: var(--primary-light); color: var(--primary); }
+  .b-cancelled  { background: var(--error-bg); color: var(--error-text); }
+  .b-rejected   { background: var(--error-bg); color: var(--error-text); }
+  .b-rescheduled { background: var(--warning-bg); color: var(--warning-text); }
+
+  /* Buttons */
+  .btn {
+    border: none; border-radius: var(--r-md);
+    padding: 8px 14px; font-size: 12.5px; font-weight: 700;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+    transition: all .15s; font-family: inherit;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-dark); }
+  .btn-success { background: var(--success-bg); color: var(--success-text); }
+  .btn-success:hover { background: #bbf7d0; }
+  .btn-danger  { background: var(--error-bg); color: var(--error-text); }
+  .btn-danger:hover { background: #fecaca; }
+  .btn-ghost   { background: var(--bg); color: var(--text-sec); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--accent-light); color: var(--accent); border-color: #c7d2fe; }
+
+  /* Empty state */
+  .appt-empty {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 72px 24px; text-align: center;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r-xl);
+  }
+  .appt-empty-icon {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: var(--accent-light); display: flex; align-items: center;
+    justify-content: center; margin-bottom: 18px; color: var(--accent);
+  }
+  .appt-empty-title { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+  .appt-empty-sub { font-size: 13.5px; color: var(--text-sec); max-width: 320px; }
+
+  /* Skeleton */
+  .skeleton {
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: var(--r-xl);
+  }
+  @keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .sk-card { height: 96px; margin-bottom: 10px; }
+
+  /* Modal */
+  .appt-modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.45);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000; padding: 20px;
+  }
+  .appt-modal {
+    background: var(--surface); border-radius: var(--r-xl);
+    width: 100%; max-width: 560px; max-height: 90vh; overflow: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,.18);
+    animation: apptSlideIn .2s ease;
+  }
+  .appt-modal-hdr {
+    padding: 22px 24px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .appt-modal-title { font-size: 17px; font-weight: 800; }
+  .appt-modal-close {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--bg); border: 1px solid var(--border);
+    cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center;
+    transition: background .15s;
+  }
+  .appt-modal-close:hover { background: var(--error-bg); color: var(--error-text); }
+  .appt-modal-body { padding: 22px 24px; }
+  .appt-modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 16px; }
+  .appt-modal-field {}
+  .appt-modal-label { font-size: 10.5px; font-weight: 700; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .05em; }
+  .appt-modal-val { font-size: 14px; font-weight: 600; color: var(--text); }
+  .appt-modal-divider { height: 1px; background: var(--border); margin: 18px 0; }
+  .appt-modal-footer {
+    padding: 16px 24px; border-top: 1px solid var(--border);
+    display: flex; justify-content: flex-end; gap: 12px;
+  }
+
+  /* Toast */
+  .appt-toast-wrap {
+    position: fixed; bottom: 28px; right: 28px; z-index: 2000;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .appt-toast {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 18px; border-radius: var(--r-lg);
+    box-shadow: 0 8px 32px rgba(0,0,0,.15);
+    font-size: 13.5px; font-weight: 600; animation: apptSlideIn .25s ease;
+  }
+  .toast-success { background: var(--success-bg); color: var(--success-text); }
+  .toast-error   { background: var(--error-bg);   color: var(--error-text); }
+  .toast-info    { background: var(--info-bg);    color: var(--info-text); }
+
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+  @media (max-width: 1100px) {
+    .appt-stats-row { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 768px) {
+    .appt-content { padding: 16px; }
+  }
+`;
+
+// ─── SVG Icons ─────────────────────────────────────────────────────────────────
+const Icon = {
+  cal:     <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"/></svg>,
+  clock:   <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/></svg>,
+  check:   <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>,
+  cross:   <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"/></svg>,
+  refresh: <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd"/></svg>,
+  search:  <svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd"/></svg>,
+  bell:    <svg width="17" height="17" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>,
+  users:   <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>,
+  video:   <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"/></svg>,
+  eye:     <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd"/></svg>,
 };
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+const AV_PALETTE = [
+  { bg: "#E0E7FF", color: "#3730A3" },
+  { bg: "#D1FAE5", color: "#065F46" },
+  { bg: "#FEF3C7", color: "#92400E" },
+  { bg: "#FCE7F3", color: "#9D174D" },
+  { bg: "#DBEAFE", color: "#1D4ED8" },
+  { bg: "#FEE2E2", color: "#991B1B" },
+];
+const getAvColor = (str = "") => {
+  let h = 0;
+  for (let c of str) h = (h * 31 + c.charCodeAt(0)) & 0xffff;
+  return AV_PALETTE[h % AV_PALETTE.length];
+};
+const getInitials = (name = "") =>
+  name.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
 
 const fmtDate = (d) => {
   if (!d) return "—";
-  try {
-    return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  } catch { return d; }
+  return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 };
 
-const fmtTime = (d) => {
-  if (!d) return "—";
-  try {
-    return new Date(d).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
-  } catch { 
-    return d;
-  }
+const STATUS_META = {
+  pending:     { label: "Pending",     cls: "b-pending",    bar: "bar-pending" },
+  accepted:    { label: "Accepted",    cls: "b-accepted",   bar: "bar-accepted" },
+  confirmed:   { label: "Confirmed",   cls: "b-confirmed",  bar: "bar-confirmed" },
+  completed:   { label: "Completed",   cls: "b-completed",  bar: "bar-completed" },
+  cancelled:   { label: "Cancelled",   cls: "b-cancelled",  bar: "bar-cancelled" },
+  rejected:    { label: "Rejected",    cls: "b-rejected",   bar: "bar-rejected" },
+  rescheduled: { label: "Rescheduled", cls: "b-rescheduled",bar: "bar-rescheduled" },
 };
+const getMeta = (s) => STATUS_META[s] || STATUS_META.pending;
 
-// ─── Avatar color helper ──────────────────────────────────────────────────────
-const AVATAR_COLORS = [
-  "bg-indigo-100 text-indigo-700",
-  "bg-emerald-100 text-emerald-700",
-  "bg-amber-100 text-amber-700",
-  "bg-pink-100 text-pink-700",
-  "bg-blue-100 text-blue-700",
-  "bg-red-100 text-red-700",
-  "bg-purple-100 text-purple-700",
-  "bg-teal-100 text-teal-700",
-];
-
-const getAvatarColor = (str = "") => {
-  let hash = 0;
-  for (let c of str) hash = (hash * 31 + c.charCodeAt(0)) & 0xffff;
-  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
-};
-
-const getInitials = (name = "") =>
-  name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
-
-// ─── NavItem Component ────────────────────────────────────────────────────────
-function NavItem({ icon: Icon, label, active, badge, onClick }) {
+// ─── Sub-components ────────────────────────────────────────────────────────────
+function StatCard({ icon, iconBg, iconColor, val, label, trend, trendCls, cls }) {
   return (
-    <button
-      onClick={onClick}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-        active
-          ? "bg-indigo-50 text-indigo-700"
-          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-      }`}
-    >
-      <Icon size={18} />
-      <span>{label}</span>
-      {badge != null && badge > 0 && (
-        <span className="ml-auto bg-indigo-600 text-white text-xs font-semibold px-2 py-0.5 rounded-full">
-          {badge}
-        </span>
-      )}
-    </button>
-  );
-}
-
-// ─── StatCard Component ───────────────────────────────────────────────────────
-function StatCard({ icon: Icon, iconBg, iconColor, value, label, trend, trendColor }) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex justify-between items-start">
+    <div className={`appt-stat-card ${cls}`}>
+      <div className="appt-stat-top">
         <div>
-          <p className="text-3xl font-bold text-gray-900">{value}</p>
-          <p className="text-sm text-gray-500 mt-1">{label}</p>
-          {trend && (
-            <p className={`text-xs font-medium mt-2 ${trendColor}`}>{trend}</p>
-          )}
+          <div className="appt-stat-val">{val}</div>
+          <div className="appt-stat-lbl">{label}</div>
+          {trend && <div className={`appt-stat-trend ${trendCls}`}>{trend}</div>}
         </div>
-        <div className={`p-3 rounded-xl ${iconBg}`}>
-          <Icon size={22} className={iconColor} />
+        <div className="appt-stat-icon" style={{ background: iconBg }}>
+          <span style={{ color: iconColor }}>{icon}</span>
         </div>
       </div>
     </div>
   );
 }
 
-// ─── AppointmentCard Component ────────────────────────────────────────────────
-function AppointmentCard({ appointment, index, onAccept, onReject, onJoin, onView }) {
-  const patientName = appointment.patientName || `${appointment.firstName || ''} ${appointment.lastName || ''}`.trim() || "Unknown Patient";
-  const avatarColor = getAvatarColor(patientName);
-  const initials = getInitials(patientName);
-  const status = appointment.status || "pending";
-  const meta = STATUS_META[status] || STATUS_META.pending;
-  const isVideo = appointment.type === "video" || appointment.consultationType === "video";
-  const dateStr = fmtDate(appointment.date || appointment.appointmentDate);
-  const timeStr = appointment.timeSlot || fmtTime(appointment.date || appointment.appointmentDate);
-
+function AppointmentCard({ appt, patientName, onAccept, onReject, onComplete, onView }) {
+  const meta = getMeta(appt.status);
+  const { bg, color } = getAvColor(patientName);
   return (
-    <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5" style={{ animationDelay: `${index * 50}ms` }}>
-      <div className="flex items-stretch">
-        <div className={`w-1 ${meta.bar}`} />
-        
-        <div className="flex-1 p-4">
-          <div className="flex items-center gap-4 flex-wrap lg:flex-nowrap">
-            <div className="relative flex-shrink-0">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm ${avatarColor}`}>
-                {initials}
-              </div>
-              <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center ${isVideo ? "bg-indigo-500" : "bg-green-500"}`}>
-                {isVideo ? <Video size={8} className="text-white" /> : <User size={8} className="text-white" />}
-              </div>
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-gray-900">{patientName}</h3>
-              <div className="flex items-center gap-2 text-xs text-gray-500 mt-1 flex-wrap">
-                <span className="flex items-center gap-1">
-                  <User size={10} /> ID: {appointment.patientId?.substring(0, 8) || appointment.patientId || "—"}
-                </span>
-                <span className="text-gray-300">•</span>
-                <span className="flex items-center gap-1">
-                  {isVideo ? <Video size={10} /> : <User size={10} />}
-                  {isVideo ? "Video call" : "In-person"}
-                </span>
-              </div>
-              <p className="text-sm text-gray-500 mt-1.5 truncate max-w-md">
-                📋 {appointment.reason || "No reason specified"}
-              </p>
-            </div>
-
-            <div className="text-right flex-shrink-0">
-              <p className="font-bold text-gray-900">{timeStr}</p>
-              <p className="text-xs text-gray-400">{dateStr}</p>
-              <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold mt-2 ${meta.color}`}>
-                {meta.label}
-              </span>
-            </div>
-
-            <div className="flex gap-2 flex-shrink-0">
-              {status === "pending" && (
-                <>
-                  <button
-                    onClick={() => onAccept(appointment)}
-                    className="px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors flex items-center gap-1"
-                  >
-                    <Check size={14} /> Accept
-                  </button>
-                  <button
-                    onClick={() => onReject(appointment)}
-                    className="px-3 py-1.5 bg-red-50 text-red-700 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors flex items-center gap-1"
-                  >
-                    <X size={14} /> Reject
-                  </button>
-                </>
-              )}
-              {status === "confirmed" && isVideo && (
-                <button
-                  onClick={() => onJoin(appointment)}
-                  className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors flex items-center gap-1"
-                >
-                  <Video size={14} /> Join
-                </button>
-              )}
-              {(status === "confirmed" || status === "completed" || status === "cancelled" || status === "accepted") && (
-                <button
-                  onClick={() => onView(appointment)}
-                  className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors flex items-center gap-1"
-                >
-                  <Eye size={14} /> View
-                </button>
+    <div className="appt-card">
+      <div className="appt-card-inner">
+        <div className={`appt-accent-bar ${meta.bar}`} />
+        <div className="appt-body">
+          <div className="appt-av" style={{ background: bg, color }}>{getInitials(patientName)}</div>
+          <div className="appt-info">
+            <div className="appt-name">{patientName}</div>
+            <div className="appt-reason">{appt.reason || "No reason provided"}</div>
+            <div className="appt-meta">
+              <span className="appt-time-meta">{Icon.clock} {fmtDate(appt.date)} · {appt.timeSlot || "—"}</span>
+              {(appt.type || appt.consultationType) && (
+                <span className="appt-time-meta">{Icon.video} {appt.type || appt.consultationType}</span>
               )}
             </div>
+          </div>
+          <div className="appt-badge-wrap">
+            <span className={`badge ${meta.cls}`}>{meta.label}</span>
+          </div>
+          <div className="appt-actions">
+            {appt.status === "pending" && (
+              <>
+                <button className="btn btn-success" onClick={() => onAccept(appt)}>{Icon.check} Accept</button>
+                <button className="btn btn-danger"  onClick={() => onReject(appt)}>{Icon.cross} Reject</button>
+              </>
+            )}
+            {appt.status === "accepted" && (
+              <button className="btn btn-primary" onClick={() => onComplete(appt)}>{Icon.video} Start</button>
+            )}
+            {(appt.status === "confirmed" || appt.status === "completed") && (
+              <button className="btn btn-ghost" onClick={() => onView(appt)}>{Icon.eye} View</button>
+            )}
+            {(appt.status === "cancelled" || appt.status === "rejected") && (
+              <button className="btn btn-ghost" onClick={() => onView(appt)}>{Icon.eye} Details</button>
+            )}
           </div>
         </div>
       </div>
@@ -209,75 +452,70 @@ function AppointmentCard({ appointment, index, onAccept, onReject, onJoin, onVie
   );
 }
 
-// ─── DetailModal Component ────────────────────────────────────────────────────
-function DetailModal({ appointment, onClose, onAccept, onReject }) {
-  if (!appointment) return null;
-  const patientName = appointment.patientName || `${appointment.firstName || ''} ${appointment.lastName || ''}`.trim() || "Unknown Patient";
-  const status = appointment.status || "pending";
-  const meta = STATUS_META[status] || STATUS_META.pending;
-
+function DetailModal({ appt, patientName, onClose, onAccept, onReject }) {
+  if (!appt) return null;
+  const meta = getMeta(appt.status);
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="bg-white rounded-2xl max-w-lg w-full shadow-xl animate-in fade-in zoom-in duration-200">
-        <div className="flex justify-between items-center p-5 border-b">
-          <h2 className="text-lg font-bold text-gray-900">Appointment Details</h2>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg transition-colors">
-            <X size={20} />
-          </button>
+    <div className="appt-modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="appt-modal">
+        <div className="appt-modal-hdr">
+          <div className="appt-modal-title">Appointment Details</div>
+          <button className="appt-modal-close" onClick={onClose}>×</button>
         </div>
-        <div className="p-5 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Patient</label>
-              <p className="font-medium text-gray-900 mt-1">{patientName}</p>
-              <p className="text-xs text-gray-500 mt-0.5">ID: {appointment.patientId}</p>
+        <div className="appt-modal-body">
+          <div className="appt-modal-grid">
+            <div className="appt-modal-field">
+              <div className="appt-modal-label">Patient</div>
+              <div className="appt-modal-val">{patientName}</div>
             </div>
-            <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</label>
-              <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold mt-1 ${meta.color}`}>
-                {meta.label}
-              </span>
+            <div className="appt-modal-field">
+              <div className="appt-modal-label">Status</div>
+              <span className={`badge ${meta.cls}`}>{meta.label}</span>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Date</label>
-              <p className="font-medium text-gray-900 mt-1">{fmtDate(appointment.date || appointment.appointmentDate)}</p>
+          <div className="appt-modal-grid">
+            <div className="appt-modal-field">
+              <div className="appt-modal-label">Date</div>
+              <div className="appt-modal-val">{fmtDate(appt.date)}</div>
             </div>
-            <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Time Slot</label>
-              <p className="font-medium text-gray-900 mt-1">{appointment.timeSlot || "—"}</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Doctor ID</label>
-              <p className="font-medium text-gray-900 mt-1">{appointment.doctorId}</p>
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Created</label>
-              <p className="font-medium text-gray-900 mt-1">{fmtDate(appointment.createdAt)}</p>
+            <div className="appt-modal-field">
+              <div className="appt-modal-label">Time Slot</div>
+              <div className="appt-modal-val">{appt.timeSlot || "—"}</div>
             </div>
           </div>
-          <div className="border-t pt-4">
-            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Reason / Complaint</label>
-            <p className="text-gray-600 mt-1">{appointment.reason || "Not specified"}</p>
-          </div>
-          {appointment.doctorNotes && (
-            <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Doctor Notes</label>
-              <p className="text-gray-600 mt-1">{appointment.doctorNotes}</p>
+          <div className="appt-modal-grid">
+            <div className="appt-modal-field">
+              <div className="appt-modal-label">Type</div>
+              <div className="appt-modal-val">{appt.type || appt.consultationType || "—"}</div>
             </div>
+            <div className="appt-modal-field">
+              <div className="appt-modal-label">Booked</div>
+              <div className="appt-modal-val">{fmtDate(appt.createdAt)}</div>
+            </div>
+          </div>
+          <div className="appt-modal-divider" />
+          <div className="appt-modal-field">
+            <div className="appt-modal-label">Reason / Notes</div>
+            <div className="appt-modal-val" style={{ color: "var(--text-sec)", fontWeight: 400, lineHeight: 1.6 }}>
+              {appt.reason || "No reason provided"}
+            </div>
+          </div>
+          {appt.doctorNotes && (
+            <>
+              <div className="appt-modal-divider" />
+              <div className="appt-modal-field">
+                <div className="appt-modal-label">Doctor's Notes</div>
+                <div className="appt-modal-val" style={{ color: "var(--text-sec)", fontWeight: 400 }}>
+                  {appt.doctorNotes}
+                </div>
+              </div>
+            </>
           )}
         </div>
-        {status === "pending" && (
-          <div className="flex justify-end gap-3 p-5 border-t">
-            <button onClick={() => { onReject(appointment); onClose(); }} className="px-4 py-2 bg-red-50 text-red-700 rounded-lg font-medium hover:bg-red-100 transition-colors">
-              Reject
-            </button>
-            <button onClick={() => { onAccept(appointment); onClose(); }} className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors">
-              Accept Appointment
-            </button>
+        {appt.status === "pending" && (
+          <div className="appt-modal-footer">
+            <button className="btn btn-danger" onClick={() => { onReject(appt); onClose(); }}>{Icon.cross} Reject</button>
+            <button className="btn btn-success" onClick={() => { onAccept(appt); onClose(); }}>{Icon.check} Accept</button>
           </div>
         )}
       </div>
@@ -285,454 +523,267 @@ function DetailModal({ appointment, onClose, onAccept, onReject }) {
   );
 }
 
-// ─── Skeleton Loader ──────────────────────────────────────────────────────────
-function SkeletonLoader() {
-  return (
-    <>
-      {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="bg-white rounded-xl border border-gray-100 p-4 animate-pulse">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gray-200 rounded-full" />
-            <div className="flex-1">
-              <div className="h-4 bg-gray-200 rounded w-32 mb-2" />
-              <div className="h-3 bg-gray-200 rounded w-48" />
-            </div>
-            <div className="w-20 h-8 bg-gray-200 rounded" />
-          </div>
-        </div>
-      ))}
-    </>
-  );
+function SkeletonList() {
+  return <>{[1, 2, 3, 4].map((n) => <div key={n} className="skeleton sk-card" style={{ animationDelay: `${n * 0.08}s` }} />)}</>;
 }
 
-// ─── Toast Container ──────────────────────────────────────────────────────────
 function ToastContainer({ toasts }) {
   return (
-    <div className="fixed bottom-5 right-5 z-50 space-y-2">
-      {toasts.map((toast) => (
-        <div
-          key={toast.id}
-          className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg text-sm font-medium animate-in slide-in-from-right duration-300 ${
-            toast.type === "success" ? "bg-green-500 text-white" :
-            toast.type === "error" ? "bg-red-500 text-white" : "bg-blue-500 text-white"
-          }`}
-        >
-          {toast.type === "success" && <Check size={16} />}
-          {toast.type === "error" && <X size={16} />}
-          {toast.type === "info" && <Clock size={16} />}
-          {toast.message}
+    <div className="appt-toast-wrap">
+      {toasts.map((t) => (
+        <div key={t.id} className={`appt-toast toast-${t.type}`}>
+          {t.type === "success" && Icon.check}
+          {t.type === "error"   && Icon.cross}
+          {t.type === "info"    && Icon.clock}
+          {t.msg}
         </div>
       ))}
     </div>
   );
 }
 
-// ─── Empty State Component ────────────────────────────────────────────────────
-function EmptyState({ message, suggestion }) {
-  return (
-    <div className="text-center py-16 bg-white rounded-xl border border-gray-100">
-      <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
-        <Calendar size={28} className="text-indigo-500" />
-      </div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-1">{message}</h3>
-      <p className="text-gray-500 text-sm">{suggestion}</p>
-    </div>
-  );
-}
-
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ─── Main Component ────────────────────────────────────────────────────────────
 export default function DoctorAppointments() {
   const navigate = useNavigate();
 
-  const [activeNav, setActiveNav] = useState("appointments");
-  const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("all");
-  const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState("");
-  const [selectedAppointment, setSelectedAppointment] = useState(null);
-  const [toasts, setToasts] = useState([]);
-  const [refreshing, setRefreshing] = useState(false);
+  const [appointments, setAppointments]   = useState([]);
+  const [patientCache, setPatientCache]   = useState({});
+  const [loading, setLoading]             = useState(true);
+  const [refreshing, setRefreshing]       = useState(false);
+  const [activeTab, setActiveTab]         = useState("all");
+  const [search, setSearch]               = useState("");
+  const [typeFilter, setTypeFilter]       = useState("all");
+  const [dateFilter, setDateFilter]       = useState("");
+  const [selectedAppt, setSelectedAppt]   = useState(null);
+  const [toasts, setToasts]               = useState([]);
   const [doctorProfile, setDoctorProfile] = useState(null);
-  const [doctorId, setDoctorId] = useState(null);
+  const [doctorId, setDoctorId]           = useState(null);
 
-  const showToast = useCallback((message, type = "info") => {
+  const toast = useCallback((msg, type = "info") => {
     const id = Date.now();
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3500);
+    setToasts((t) => [...t, { id, msg, type }]);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3500);
   }, []);
 
   // Fetch doctor profile
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-    axios.get(`${DR_API}/doctors/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => {
-        setDoctorProfile(res.data);
-        setDoctorId(res.data._id || res.data.id);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch doctor profile:", err);
-        showToast("Could not load doctor profile", "error");
-      });
-  }, [navigate, showToast]);
+    if (!token) { navigate("/login"); return; }
+    axios.get(`${DR_API}/doctors/me`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => { setDoctorProfile(res.data); setDoctorId(res.data._id || res.data.id || res.data.userId); })
+      .catch(() => toast("Could not load doctor profile", "error"));
+  }, [navigate]);
 
-  // Fetch appointments - SIMPLIFIED - using firstName and lastName from appointment
+  // Fetch patient name
+  const fetchPatientName = useCallback(async (patientId) => {
+    if (patientCache[patientId]) return patientCache[patientId];
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`${API_GATEWAY}/auth/internal/users/${patientId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const name = `${res.data.firstName} ${res.data.lastName}`;
+      setPatientCache((p) => ({ ...p, [patientId]: name }));
+      return name;
+    } catch {
+      return `Patient …${patientId?.slice(-6)}`;
+    }
+  }, [patientCache]);
+
+  // Fetch appointments
   const fetchAppointments = useCallback(async (showLoader = true) => {
     const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-    if (!doctorId) return;
-
-    if (showLoader) setLoading(true);
-    else setRefreshing(true);
-
+    if (!token || !doctorId) return;
+    if (showLoader) setLoading(true); else setRefreshing(true);
     try {
       const res = await axios.get(`${APPT_API}/appointments/doctor/${doctorId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      
-      const appointmentsData = Array.isArray(res.data) ? res.data : res.data.appointments || [];
-      
-      // Just add patientName using firstName and lastName from the appointment
-      const enrichedAppointments = appointmentsData.map(apt => ({
-        ...apt,
-        patientName: `${apt.firstName || ''} ${apt.lastName || ''}`.trim() || "Unknown Patient"
+      const data = Array.isArray(res.data) ? res.data : res.data.appointments || [];
+
+      // Enrich with patient names
+      const enriched = data.map((a) => ({
+        ...a,
+        patientName: `${a.firstName || ""} ${a.lastName || ""}`.trim() || null,
       }));
-      
-      setAppointments(enrichedAppointments);
-      
+      setAppointments(enriched);
+
+      // Also fill cache from patientId if patientName missing
+      const missing = enriched.filter((a) => !a.patientName && a.patientId);
+      for (const a of missing) await fetchPatientName(a.patientId);
     } catch (err) {
-      console.error("Fetch error:", err);
-      if (err.response?.status === 401) {
-        navigate("/login");
-      } else {
-        showToast(err.response?.data?.message || "Failed to load appointments", "error");
-        setAppointments([]);
-      }
+      if (err.response?.status === 401) navigate("/login");
+      else toast("Failed to load appointments", "error");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [navigate, showToast, doctorId]);
+  }, [doctorId, navigate, toast, fetchPatientName]);
 
-  useEffect(() => {
-    if (doctorId) {
-      fetchAppointments();
-    }
-  }, [fetchAppointments, doctorId]);
+  useEffect(() => { if (doctorId) fetchAppointments(); }, [doctorId]);
 
-  // Accept appointment
-  const handleAccept = async (appointment) => {
+  const getPatientName = (appt) =>
+    appt.patientName || patientCache[appt.patientId] || `Patient …${appt.patientId?.slice(-6)}`;
+
+  // Actions
+  const handleAccept = async (appt) => {
     const token = localStorage.getItem("token");
     try {
-      await axios.put(
-        `${APPT_API}/appointments/${appointment._id}/accept`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setAppointments((prev) =>
-        prev.map((a) => a._id === appointment._id ? { ...a, status: "confirmed" } : a)
-      );
-      showToast("Appointment confirmed successfully", "success");
+      await axios.put(`${APPT_API}/appointments/${appt._id}/accept`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      setAppointments((p) => p.map((a) => a._id === appt._id ? { ...a, status: "confirmed" } : a));
+      toast("Appointment confirmed", "success");
     } catch (err) {
-      console.error("Accept error:", err);
-      showToast(err.response?.data?.message || err.message || "Failed to confirm appointment", "error");
+      toast(err.response?.data?.message || "Failed to confirm", "error");
     }
   };
 
-  // Reject appointment
-  const handleReject = async (appointment) => {
+  const handleReject = async (appt) => {
     const token = localStorage.getItem("token");
     try {
-      await axios.put(
-        `${APPT_API}/appointments/${appointment._id}/reject`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setAppointments((prev) =>
-        prev.map((a) => a._id === appointment._id ? { ...a, status: "rejected" } : a)
-      );
-      showToast("Appointment rejected", "error");
+      await axios.put(`${APPT_API}/appointments/${appt._id}/reject`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      setAppointments((p) => p.map((a) => a._id === appt._id ? { ...a, status: "rejected" } : a));
+      toast("Appointment rejected", "error");
     } catch (err) {
-      console.error("Reject error:", err);
-      showToast(err.response?.data?.message || "Failed to reject appointment", "error");
+      toast(err.response?.data?.message || "Failed to reject", "error");
     }
   };
 
-  const handleJoin = (appointment) => {
-    window.open(`/video?appointmentId=${appointment._id}&role=doctor`, "_blank");
-  };
+  const handleComplete = (appt) => navigate(`/video?appointmentId=${appt._id}&role=doctor`);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/login");
-  };
-
-  const handleNav = (key) => {
-    setActiveNav(key);
-    const routes = {
-      dashboard: "/doctor/dashboard",
-      appointments: "/doctor/appointments",
-      patients: "/doctor/patients",
-      video: "/video?role=doctor",
-      prescriptions: "/doctor/prescriptions",
-      settings: "/doctor/settings",
-    };
-    if (routes[key]) navigate(routes[key]);
-  };
-
-  // Filtering appointments
-  const filteredAppointments = appointments.filter((a) => {
-    const patientName = (a.patientName || "").toLowerCase();
+  // Filtering
+  const filtered = appointments.filter((a) => {
+    const name = getPatientName(a).toLowerCase();
     const reason = (a.reason || "").toLowerCase();
-    const searchMatch = !search || patientName.includes(search.toLowerCase()) || reason.includes(search.toLowerCase());
-
-    const status = a.status || "pending";
-    const tabMatch =
-      activeTab === "all" ||
-      (activeTab === "pending" && status === "pending") ||
-      (activeTab === "confirmed" && status === "confirmed") ||
-      (activeTab === "completed" && status === "completed") ||
-      (activeTab === "cancelled" && status === "cancelled") ||
-      (activeTab === "rejected" && status === "rejected") ||
-      (activeTab === "accepted" && status === "accepted");
-
-    const type = a.type || a.consultationType || "";
-    const typeMatch = typeFilter === "all" || type === typeFilter;
-
-    const appointmentDate = a.date || a.appointmentDate || "";
-    const dateMatch = !dateFilter || (appointmentDate && appointmentDate.startsWith(dateFilter));
-
-    return searchMatch && tabMatch && typeMatch && dateMatch;
+    const q = search.toLowerCase();
+    const searchOk = !search || name.includes(q) || reason.includes(q);
+    const tabOk = activeTab === "all" || a.status === activeTab;
+    const typeOk = typeFilter === "all" || (a.type || a.consultationType) === typeFilter;
+    const dateOk = !dateFilter || (a.date || "").startsWith(dateFilter);
+    return searchOk && tabOk && typeOk && dateOk;
   });
 
-  // Counts for stats
   const counts = {
-    all: appointments.length,
-    pending: appointments.filter((a) => (a.status || "pending") === "pending").length,
-    confirmed: appointments.filter((a) => a.status === "confirmed").length,
-    completed: appointments.filter((a) => a.status === "completed").length,
-    cancelled: appointments.filter((a) => a.status === "cancelled").length,
-    rejected: appointments.filter((a) => a.status === "rejected").length,
-    accepted: appointments.filter((a) => a.status === "accepted").length,
+    all:         appointments.length,
+    pending:     appointments.filter((a) => a.status === "pending").length,
+    accepted:    appointments.filter((a) => a.status === "accepted").length,
+    confirmed:   appointments.filter((a) => a.status === "confirmed").length,
+    completed:   appointments.filter((a) => a.status === "completed").length,
+    cancelled:   appointments.filter((a) => a.status === "cancelled").length,
+    rejected:    appointments.filter((a) => a.status === "rejected").length,
   };
-
-  const doctorName = doctorProfile
-    ? `Dr. ${doctorProfile.firstName || ""} ${doctorProfile.lastName || ""}`.trim()
-    : "Loading...";
-  const doctorInitials = doctorProfile?.firstName && doctorProfile?.lastName
-    ? `${doctorProfile.firstName[0]}${doctorProfile.lastName[0]}`
-    : "DR";
-  const doctorSpecialty = doctorProfile?.specialization || "Doctor";
 
   const today = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
+    weekday: "long", month: "long", day: "numeric", year: "numeric",
   });
 
-  const tabs = [
+  const TABS = [
     { key: "all", label: "All" },
-    { key: "pending", label: "Pending" },
+    { key: "pending",   label: "Pending" },
+    { key: "accepted",  label: "Accepted" },
     { key: "confirmed", label: "Confirmed" },
-    { key: "accepted", label: "Accepted" },
     { key: "completed", label: "Completed" },
     { key: "cancelled", label: "Cancelled" },
-    { key: "rejected", label: "Rejected" },
+    { key: "rejected",  label: "Rejected" },
   ];
 
   return (
-    <div className="flex h-screen bg-gray-50 font-sans">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-5 border-b">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-500 flex items-center justify-center shadow-lg">
-              <Activity size={20} className="text-white" />
-            </div>
+    <>
+      <style>{CSS}</style>
+      <div className="appt-dash">
+        {/* ── Shared Sidebar ── */}
+        <DoctorSidebar
+          activeNav="appointments"
+          doctorProfile={doctorProfile}
+          pendingCount={counts.pending}
+          confirmedCount={counts.confirmed}
+        />
+
+        {/* ── Main ── */}
+        <div className="appt-main">
+          <header className="appt-topbar">
             <div>
-              <h1 className="font-bold text-gray-900">MediConnect</h1>
-              <p className="text-xs text-gray-500">Doctor Portal</p>
+              <div className="appt-tb-title">Appointments</div>
+              <div className="appt-tb-date">{today}</div>
             </div>
-          </div>
-        </div>
+            <div className="appt-tb-right">
+              <div className="appt-icon-btn">
+                {Icon.bell}
+                {counts.pending > 0 && <div className="notif-dot" />}
+              </div>
+            </div>
+          </header>
 
-        <nav className="flex-1 p-3 space-y-6">
-          <div>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">Overview</p>
-            <NavItem icon={Home} label="Dashboard" active={activeNav === "dashboard"} onClick={() => handleNav("dashboard")} />
-            <NavItem icon={Calendar} label="Appointments" active={activeNav === "appointments"} onClick={() => handleNav("appointments")} badge={counts.pending} />
-            <NavItem icon={Users} label="My Patients" active={activeNav === "patients"} onClick={() => handleNav("patients")} />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">Consultations</p>
-            <NavItem icon={Video} label="Video Sessions" active={activeNav === "video"} onClick={() => handleNav("video")} badge={counts.confirmed} />
-            <NavItem icon={FileText} label="Prescriptions" active={activeNav === "prescriptions"} onClick={() => handleNav("prescriptions")} />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">Account</p>
-            <NavItem icon={Settings} label="Settings" active={activeNav === "settings"} onClick={() => handleNav("settings")} />
-          </div>
-        </nav>
+          <div className="appt-content">
+            {/* Stats */}
+            <div className="appt-stats-row">
+              <StatCard icon={Icon.cal}   iconBg="var(--accent-light)"  iconColor="var(--accent)"        val={counts.all}       label="Total Appointments"   trend={`${counts.confirmed} confirmed`}                  trendCls="trend-up"  cls="sc-indigo" />
+              <StatCard icon={Icon.clock} iconBg="var(--warning-bg)"    iconColor="var(--warning-text)"  val={counts.pending}   label="Awaiting Response"    trend={counts.pending > 0 ? "Action required" : "All cleared"} trendCls={counts.pending > 0 ? "trend-up" : "trend-neu"} cls="sc-amber" />
+              <StatCard icon={Icon.check} iconBg="var(--success-bg)"    iconColor="var(--success-text)"  val={counts.completed} label="Completed"             trend="Successfully done"                                trendCls="trend-up"  cls="sc-green" />
+              <StatCard icon={Icon.users} iconBg="var(--info-bg)"       iconColor="var(--info-text)"     val={counts.accepted}  label="Accepted (Pending Pay)" trend="Awaiting confirmation"                           trendCls="trend-neu" cls="sc-blue" />
+            </div>
 
-        <div className="p-4 border-t">
-          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl mb-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${getAvatarColor(doctorName)}`}>
-              {doctorInitials}
+            {/* Tabs */}
+            <div className="appt-tabs">
+              {TABS.map((t) => (
+                <button key={t.key} className={`appt-tab${activeTab === t.key ? " active" : ""}`} onClick={() => setActiveTab(t.key)}>
+                  {t.label}
+                  <span className="appt-tab-count">{counts[t.key] ?? 0}</span>
+                </button>
+              ))}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-gray-900 text-sm truncate">{doctorName}</p>
-              <p className="text-xs text-gray-500 truncate">{doctorSpecialty}</p>
-            </div>
-            <Circle size={10} className="text-green-500 fill-green-500" />
-          </div>
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-2 px-3 py-2 text-red-600 bg-red-50 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
-          >
-            <LogOut size={16} /> Log out
-          </button>
-        </div>
-      </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Bar */}
-        <header className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">Appointments</h2>
-              <p className="text-sm text-gray-500 mt-0.5">{today}</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors relative">
-                <Bell size={20} className="text-gray-600" />
-                {counts.pending > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-                )}
+            {/* Filter Bar */}
+            <div className="appt-filter-bar">
+              <div className="appt-search-wrap">
+                <span className="appt-search-icon">{Icon.search}</span>
+                <input className="appt-search-input" placeholder="Search by patient name or reason…" value={search} onChange={(e) => setSearch(e.target.value)} />
+              </div>
+              <select className="appt-select" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+                <option value="all">All types</option>
+                <option value="video">Video</option>
+                <option value="in-person">In-person</option>
+              </select>
+              <input type="date" className="appt-date-input" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} />
+              <button className="appt-btn-refresh" onClick={() => fetchAppointments(false)} disabled={refreshing}>
+                <span style={{ display: "inline-flex", animation: refreshing ? "spin 1s linear infinite" : "none" }}>{Icon.refresh}</span>
+                {refreshing ? "Refreshing…" : "Refresh"}
               </button>
             </div>
-          </div>
-        </header>
 
-        {/* Content */}
-        <div className="flex-1 overflow-auto p-6">
-          {/* Stats Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <StatCard icon={Calendar} iconBg="bg-indigo-50" iconColor="text-indigo-600" value={counts.all} label="Total Appointments" trend={`${counts.confirmed} confirmed`} trendColor="text-green-600" />
-            <StatCard icon={Clock} iconBg="bg-amber-50" iconColor="text-amber-600" value={counts.pending} label="Awaiting Response" trend={counts.pending > 0 ? "Action required" : "All cleared"} trendColor={counts.pending > 0 ? "text-amber-600" : "text-gray-500"} />
-            <StatCard icon={Check} iconBg="bg-emerald-50" iconColor="text-emerald-600" value={counts.completed} label="Completed" trend="Seen patients" trendColor="text-emerald-600" />
-            <StatCard icon={Video} iconBg="bg-blue-50" iconColor="text-blue-600" value={appointments.filter((a) => (a.type || a.consultationType) === "video").length} label="Video Sessions" trend="Teleconsultations" trendColor="text-blue-600" />
-          </div>
-
-          {/* Tabs */}
-          <div className="flex gap-1 bg-white border border-gray-200 rounded-lg p-1 w-fit mb-5 flex-wrap">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                  activeTab === tab.key
-                    ? "bg-indigo-600 text-white shadow-sm"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                {tab.label}
-                <span className={`ml-2 px-1.5 py-0.5 rounded-full text-xs ${
-                  activeTab === tab.key ? "bg-white/20 text-white" : "bg-gray-100 text-gray-600"
-                }`}>
-                  {counts[tab.key] || 0}
-                </span>
-              </button>
-            ))}
-          </div>
-
-          {/* Filter Bar */}
-          <div className="flex flex-wrap gap-3 mb-5">
-            <div className="flex-1 min-w-[200px] relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by patient name or reason..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              />
-            </div>
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="all">All types</option>
-              <option value="video">Video</option>
-              <option value="in-person">In-person</option>
-            </select>
-            <input
-              type="date"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            <button
-              onClick={() => fetchAppointments(false)}
-              disabled={refreshing}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-70"
-            >
-              <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
-              {refreshing ? "Refreshing..." : "Refresh"}
-            </button>
-          </div>
-
-          {/* Appointments List */}
-          <div className="space-y-3">
-            {loading ? (
-              <SkeletonLoader />
-            ) : filteredAppointments.length === 0 ? (
-              <EmptyState 
-                message="No appointments found"
-                suggestion={search || typeFilter !== "all" || dateFilter 
-                  ? "Try adjusting your filters or search query."
-                  : "When patients book appointments, they will appear here."}
-              />
-            ) : (
-              filteredAppointments.map((appointment, idx) => (
+            {/* List */}
+            <div className="appt-list">
+              {loading ? <SkeletonList /> : filtered.length === 0 ? (
+                <div className="appt-empty">
+                  <div className="appt-empty-icon">{Icon.cal}</div>
+                  <div className="appt-empty-title">No appointments found</div>
+                  <div className="appt-empty-sub">{search || typeFilter !== "all" || dateFilter ? "Try adjusting your filters." : "You have no appointments in this category."}</div>
+                </div>
+              ) : filtered.map((appt) => (
                 <AppointmentCard
-                  key={appointment._id || appointment.id || idx}
-                  appointment={appointment}
-                  index={idx}
+                  key={appt._id || appt.id}
+                  appt={appt}
+                  patientName={getPatientName(appt)}
                   onAccept={handleAccept}
                   onReject={handleReject}
-                  onJoin={handleJoin}
-                  onView={setSelectedAppointment}
+                  onComplete={handleComplete}
+                  onView={(a) => setSelectedAppt(a)}
                 />
-              ))
-            )}
+              ))}
+            </div>
           </div>
         </div>
-      </main>
+      </div>
 
-      {/* Modals & Toasts */}
-      {selectedAppointment && (
+      {selectedAppt && (
         <DetailModal
-          appointment={selectedAppointment}
-          onClose={() => setSelectedAppointment(null)}
+          appt={selectedAppt}
+          patientName={getPatientName(selectedAppt)}
+          onClose={() => setSelectedAppt(null)}
           onAccept={handleAccept}
           onReject={handleReject}
         />
       )}
       <ToastContainer toasts={toasts} />
-    </div>
+    </>
   );
 }

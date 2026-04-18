@@ -6,8 +6,6 @@ const NOTIFICATION_SERVICE_URL = process.env.NOTIFICATION_SERVICE_URL;
 
 // Run every minute
 cron.schedule("* * * * *", async () => {
-  console.log("⏰ Running reminder job...");
-
   try {
     const now = new Date();
     const inOneHour = new Date(now.getTime() + 60 * 60 * 1000);

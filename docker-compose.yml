@@ -1,0 +1,156 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:latest
+    container_name: carelink-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - carelink-net
+
+  api-gateway:
+    build:
+      context: ./Backend/api-gateway
+    container_name: carelink-api-gateway
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./Backend/api-gateway/.env.docker
+    depends_on:
+      - patient-service
+      - doctor-service
+      - appointment-service
+      - telemedicine-service
+      - payment-service
+      - notification-service
+      - ai-symptom-service
+      - auth-service
+    networks:
+      - carelink-net
+
+  patient-service:
+    build:
+      context: ./Backend/services/patient-service
+    container_name: carelink-patient-service
+    ports:
+      - "3001:3001"
+    env_file:
+      - ./Backend/services/patient-service/.env.docker
+    depends_on:
+      - mongo
+    networks:
+      - carelink-net
+
+  doctor-service:
+    build:
+      context: ./Backend/services/doctor-service
+    container_name: carelink-doctor-service
+    ports:
+      - "3002:3002"
+    env_file:
+      - ./Backend/services/doctor-service/.env.docker
+    depends_on:
+      - mongo
+    networks:
+      - carelink-net
+
+  appointment-service:
+    build:
+      context: ./Backend/services/appointment-service
+    container_name: carelink-appointment-service
+    ports:
+      - "3003:3003"
+    env_file:
+      - ./Backend/services/appointment-service/.env.docker
+    depends_on:
+      - mongo
+    networks:
+      - carelink-net
+
+  telemedicine-service:
+    build:
+      context: ./Backend/services/telemedicine-service
+    container_name: carelink-telemedicine-service
+    ports:
+      - "3004:3004"
+    env_file:
+      - ./Backend/services/telemedicine-service/.env.docker
+    depends_on:
+      - mongo
+    networks:
+      - carelink-net
+
+  payment-service:
+    build:
+      context: ./Backend/services/payment-service
+    container_name: carelink-payment-service
+    ports:
+      - "3005:3005"
+    env_file:
+      - ./Backend/services/payment-service/.env.docker
+    depends_on:
+      - mongo
+    networks:
+      - carelink-net
+
+  notification-service:
+    build:
+      context: ./Backend/services/notification-service
+    container_name: carelink-notification-service
+    ports:
+      - "3006:3006"
+    env_file:
+      - ./Backend/services/notification-service/.env.docker
+    depends_on:
+      - mongo
+    networks:
+      - carelink-net
+
+  ai-symptom-service:
+    build:
+      context: ./Backend/services/ai-symptom-service
+    container_name: carelink-symptom-service
+    ports:
+      - "3007:3007"
+    env_file:
+      - ./Backend/services/ai-symptom-service/.env.docker
+    depends_on:
+      - mongo
+    networks:
+      - carelink-net
+
+  auth-service:
+    build:
+      context: ./Backend/services/auth-service
+    container_name: carelink-auth-service
+    ports:
+      - "3008:3008"
+    env_file:
+      - ./Backend/services/auth-service/.env.docker
+    depends_on:
+      - mongo
+    networks:
+      - carelink-net
+
+  frontend:
+    build:
+      context: ./Frontend
+    container_name: carelink-frontend
+    ports:
+      - "5173:80"
+    env_file:
+      - ./Frontend/.env.docker
+    depends_on:
+      - api-gateway
+    networks:
+      - carelink-net
+
+networks:
+  carelink-net:
+    driver: bridge
+
+volumes:
+  mongo-data:

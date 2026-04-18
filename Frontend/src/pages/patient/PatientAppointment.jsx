@@ -2,7 +2,9 @@ import React, { useState, useRef, useEffect } from "react";
 import { useUser } from "../../contextUser.jsx";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import {
+import PatientSidebar from "../shared/PatientSidebar.jsx";
+import 
+{
   LayoutDashboard,
   Calendar,
   Bot,
@@ -30,12 +32,10 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 
-// ─── API base URL (ensure it includes /api) ───────────────────────────────────
-const RAW_API = import.meta.env.VITE_APPOINTMENT_SERVICE_URL || "http://localhost:5002";
-const API_BASE = RAW_API.replace(/\/$/, "") + (RAW_API.endsWith("/api") ? "" : "/api");
+import { API_GATEWAY } from "../../utils/api";
 
-// Payment service URL
-const PAYMENT_API = "http://localhost:3005/api";
+const API_BASE = import.meta.env.VITE_API_GATEWAY_URL || API_GATEWAY;
+const PAYMENT_API = import.meta.env.VITE_API_GATEWAY_URL || API_GATEWAY;
 
 // ─── Status config ──────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
@@ -45,124 +45,6 @@ const STATUS_CONFIG = {
   cancelled:   { color: "#EF4444", bg: "#FEE2E2", label: "Cancelled",   icon: XCircle },
   completed:   { color: "#3B82F6", bg: "#EFF6FF", label: "Completed",   icon: CheckCircle },
   rescheduled: { color: "#8B5CF6", bg: "#F3E8FF", label: "Rescheduled", icon: RefreshCw },
-};
-
-// ─── Sidebar ─────────────────────────────────────────────────────────────────
-const Sidebar = ({ user, chatbotOpen, setChatbotOpen, navigate, activePage }) => {
-  const initials = `${user?.firstName?.[0] || "?"}${user?.lastName?.[0] || ""}`;
-  const { logout } = useUser();
-
-  return (
-    <aside className="w-64 bg-white border-r border-[#E5E7EB] flex flex-col min-h-screen">
-      {/* Logo */}
-      <div className="flex items-center gap-2 px-6 py-6 border-b border-[#E5E7EB]">
-        <div className="bg-[#14B8A6] rounded-full w-10 h-10 flex items-center justify-center text-white text-2xl font-bold">+</div>
-        <div>
-          <div className="font-bold text-lg text-[#111827]">CareLink</div>
-          <div className="text-xs text-[#6B7280]">Patient Portal</div>
-        </div>
-      </div>
-
-      {/* Nav */}
-      <nav className="flex-1 px-4 py-6">
-        <ul className="space-y-1">
-          <li
-            onClick={() => navigate("/patient/dashboard")}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer font-medium transition-colors ${
-              activePage === "dashboard"
-                ? "bg-[#CCFBF1] text-[#14B8A6]"
-                : "text-[#6B7280] hover:bg-[#CCFBF1] hover:text-[#14B8A6]"
-            }`}
-          >
-            <LayoutDashboard size={18} /> Dashboard
-          </li>
-          <li
-            onClick={() => navigate("/patient/appointments")}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer font-medium transition-colors ${
-              activePage === "appointments"
-                ? "bg-[#CCFBF1] text-[#14B8A6]"
-                : "text-[#6B7280] hover:bg-[#CCFBF1] hover:text-[#14B8A6]"
-            }`}
-          >
-            <Calendar size={18} /> Appointments
-          </li>
-          <li className="flex items-center gap-3 px-3 py-2 text-[#6B7280] hover:bg-[#CCFBF1] rounded-lg cursor-pointer transition-colors">
-            <span className="material-icons text-[18px]">folder</span> Medical Records
-          </li>
-          <li className="flex items-center gap-3 px-3 py-2 text-[#6B7280] hover:bg-[#CCFBF1] rounded-lg cursor-pointer transition-colors">
-            <span className="material-icons text-[18px]">medication</span>
-            Prescriptions
-            <span className="ml-auto bg-[#CCFBF1] text-[#0D9488] text-xs px-2 py-0.5 rounded-full">2</span>
-          </li>
-
-          {/* Chatbot dropdown */}
-          <li
-            onClick={() => setChatbotOpen(!chatbotOpen)}
-            className="flex items-center justify-between gap-3 px-3 py-2 text-[#6B7280] hover:bg-[#CCFBF1] rounded-lg cursor-pointer transition-colors"
-          >
-            <div className="flex items-center gap-3"><Bot size={18} /> Chatbot</div>
-            <ChevronDown size={16} className={`transition-transform ${chatbotOpen ? "rotate-180" : ""}`} />
-          </li>
-          {chatbotOpen && (
-            <>
-              <li onClick={() => navigate("/patient/symptom-check")}
-                className="flex items-center gap-3 pl-10 pr-3 py-2 text-[#6B7280] hover:bg-[#CCFBF1] rounded-lg cursor-pointer transition-colors">
-                <Activity size={18} /> Symptom Checker
-              </li>
-              <li onClick={() => navigate("/patient/symptom-history")}
-                className="flex items-center gap-3 pl-10 pr-3 py-2 text-[#6B7280] hover:bg-[#CCFBF1] rounded-lg cursor-pointer transition-colors">
-                <Clock size={18} /> Symptom History
-              </li>
-            </>
-          )}
-        </ul>
-
-        <div className="mt-8">
-          <div className="text-xs text-[#9CA3AF] uppercase mb-2 px-3">Care</div>
-          <ul className="space-y-1">
-            <li className="flex items-center gap-3 px-3 py-2 text-[#6B7280] hover:bg-[#CCFBF1] rounded-lg cursor-pointer transition-colors">
-              <span className="material-icons text-[18px]">groups</span> My Doctors
-            </li>
-            <li className="flex items-center gap-3 px-3 py-2 text-[#6B7280] hover:bg-[#CCFBF1] rounded-lg cursor-pointer transition-colors">
-              <span className="material-icons text-[18px]">mail</span> Messages
-              <span className="ml-auto bg-[#EFF6FF] text-[#2563EB] text-xs px-2 py-0.5 rounded-full">1</span>
-            </li>
-            <li className="flex items-center gap-3 px-3 py-2 text-[#6B7280] hover:bg-[#CCFBF1] rounded-lg cursor-pointer transition-colors">
-              <span className="material-icons text-[18px]">verified_user</span> Insurance
-            </li>
-          </ul>
-        </div>
-
-        <div className="mt-8">
-          <div className="text-xs text-[#9CA3AF] uppercase mb-2 px-3">Account</div>
-          <ul className="space-y-1">
-            <li className="flex items-center gap-3 px-3 py-2 text-[#6B7280] hover:bg-[#CCFBF1] rounded-lg cursor-pointer transition-colors">
-              <span className="material-icons text-[18px]">settings</span> Settings
-            </li>
-            <li
-              onClick={() => { logout(); navigate("/login"); }}
-              className="flex items-center gap-3 px-3 py-2 text-[#EF4444] hover:bg-[#FEE2E2] rounded-lg cursor-pointer transition-colors"
-            >
-              <LogOut size={18} /> Logout
-            </li>
-          </ul>
-        </div>
-      </nav>
-
-      {/* User card */}
-      <div className="mt-auto px-4 py-4">
-        <div className="bg-[#CCFBF1] rounded-xl p-3 flex items-center gap-3">
-          <div className="bg-[#0D9488] text-white rounded-full w-10 h-10 flex items-center justify-center font-bold text-sm shrink-0">
-            {initials}
-          </div>
-          <div className="min-w-0">
-            <div className="font-semibold text-[#0D9488] text-sm truncate">{user?.firstName} {user?.lastName}</div>
-            <div className="text-xs text-[#14B8A6]">Patient</div>
-          </div>
-        </div>
-      </div>
-    </aside>
-  );
 };
 
 // ─── Book Appointment Modal ───────────────────────────────────────────────────
@@ -801,13 +683,7 @@ const PatientAppointment = () => {
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex">
       {/* Sidebar */}
-      <Sidebar
-        user={user}
-        chatbotOpen={chatbotOpen}
-        setChatbotOpen={setChatbotOpen}
-        navigate={navigate}
-        activePage="appointments"
-      />
+      <PatientSidebar activePage="appointments" />
 
       {/* Main */}
       <main className="flex-1 overflow-y-auto">
