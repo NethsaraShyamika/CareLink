@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const doctorSchema = new mongoose.Schema(
   {
-    // 🔐 Link to auth-service user
+    
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
@@ -10,7 +10,7 @@ const doctorSchema = new mongoose.Schema(
       index: true,
     },
 
-    // 👨‍⚕️ Basic Profile
+    
     firstName: {
       type: String,
       required: true,
@@ -48,7 +48,7 @@ const doctorSchema = new mongoose.Schema(
       min: 0,
     },
 
-    // 📅 Availability
+   
     workingDays: {
       type: [String],
       enum: ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"],
@@ -76,7 +76,7 @@ const doctorSchema = new mongoose.Schema(
       default: "Online",
     },
 
-    // 🟢 ADMIN VERIFICATION (IMPORTANT PART)
+   
     verificationStatus: {
       type: String,
       enum: ["pending", "approved", "rejected"],
@@ -84,7 +84,7 @@ const doctorSchema = new mongoose.Schema(
     },
 
     verifiedBy: {
-      type: mongoose.Schema.Types.ObjectId, // admin userId
+      type: mongoose.Schema.Types.ObjectId, 
       default: null,
     },
 

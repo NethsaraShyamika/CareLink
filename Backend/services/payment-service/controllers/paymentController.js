@@ -9,9 +9,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
 
-// ======================================================
-// CREATE STRIPE CHECKOUT SESSION
-// ======================================================
+
 // POST /api/payments/stripe/create-checkout
 export async function createStripeCheckoutSession(req, res) {
   try {
@@ -76,9 +74,7 @@ export async function createStripeCheckoutSession(req, res) {
 }
 
 
-// ======================================================
-// STRIPE WEBHOOK
-// ======================================================
+
 // POST /api/payments/stripe/webhook
 export async function stripeWebhook(req, res) {
   const sig = req.headers["stripe-signature"];
@@ -142,9 +138,7 @@ export async function stripeWebhook(req, res) {
 }
 
 
-// ======================================================
-// GET PAYMENT HISTORY (PATIENT)
-// ======================================================
+
 // GET /api/payments/history
 export async function getPaymentHistory(req, res) {
   try {
@@ -167,9 +161,7 @@ export async function getPaymentHistory(req, res) {
 }
 
 
-// ======================================================
-// GET SINGLE PAYMENT
-// ======================================================
+
 // GET /api/payments/:id
 export async function getPaymentById(req, res) {
   try {
@@ -199,9 +191,7 @@ export async function getPaymentById(req, res) {
 }
 
 
-// ======================================================
-// GET PAYMENT BY APPOINTMENT
-// ======================================================
+
 // GET /api/payments/appointment/:appointmentId
 export async function getPaymentByAppointment(req, res) {
   try {
@@ -233,9 +223,7 @@ export async function getPaymentByAppointment(req, res) {
 }
 
 
-// ======================================================
-// GET PAYMENT BY SESSION ID
-// ======================================================
+
 // GET /api/payments/session/:sessionId
 export async function getPaymentBySessionId(req, res) {
   try {
@@ -272,9 +260,7 @@ export async function getPaymentBySessionId(req, res) {
 }
 
 
-// ======================================================
-// CONFIRM PAYMENT BY SESSION ID
-// ======================================================
+
 // POST /api/payments/stripe/confirm
 export async function confirmStripePayment(req, res) {
   try {
@@ -313,9 +299,7 @@ export async function confirmStripePayment(req, res) {
 }
 
 
-// ======================================================
-// ADMIN - GET ALL PAYMENTS
-// ======================================================
+
 // GET /api/payments/admin/all
 export async function getAllPayments(req, res) {
   try {

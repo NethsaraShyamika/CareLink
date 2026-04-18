@@ -26,18 +26,26 @@ function App() {
     return params.get(param) || "";
   };
 
+  const appointmentId = getQueryParam("appointmentId");
+  const role = getQueryParam("role") || "patient";
+  const autoJoin = getQueryParam("autoJoin");
+  const videoUrl = `/video?appointmentId=${appointmentId}&role=${role}&autoJoin=${autoJoin}`;
+
   return (
     <Router>
       <Routes>
 
-
-        {/* Redirect root to login */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        {/* Redirect root to login or video when appointment query exists */}
+        <Route
+          path="/"
+          element={
+            appointmentId ? <Navigate to={videoUrl} replace /> : <Navigate to="/login" replace />
+          }
+        />
 
         {/* Auth */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-
 
         {/* Patient */}
         <Route path="/patient/dashboard" element={<PatientDashboard />} />
@@ -45,7 +53,6 @@ function App() {
         <Route path="/patient/symptom-history" element={<SymptomHistory />} />
         <Route path="/payments/history" element={<PaymentHistory />} />
         <Route path="/patient/appointments" element={<PatientAppointment />} />
-
 
         {/* Doctor */}
         <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
@@ -62,8 +69,9 @@ function App() {
           path="/video"
           element={
             <VideoCall
-              appointmentId={getQueryParam("appointmentId")}
-              role={getQueryParam("role") || "patient"}
+              initialAppointmentId={getQueryParam("appointmentId")}
+              initialRole={role}
+              autoJoinEnabled={autoJoin === "1"}
             />
           }
         />
@@ -75,12 +83,7 @@ function App() {
         {/* Redirect old route */}
         <Route
           path="/join-consultation"
-          element={
-            <Navigate
-              to={`/video?appointmentId=${getQueryParam("appointmentId")}&role=${getQueryParam("role")}`}
-              replace
-            />
-          }
+          element={<Navigate to={videoUrl} replace />}
         />
 
         {/* fallback */}

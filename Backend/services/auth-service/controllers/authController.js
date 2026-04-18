@@ -90,7 +90,7 @@ export async function loginUser(req, res) {
     }
 
     const payload = {
-      id: user._id,           // ✅ use _id consistently
+      id: user._id,           
       userId: user.userId,
       email: user.email,
       firstName: user.firstName,
@@ -101,7 +101,7 @@ export async function loginUser(req, res) {
       phone: user.phone,
     };
 
-    const JWT_SECRET = process.env.JWT_SECRET || 'mysecretkey123'; // ✅ consistent
+    const JWT_SECRET = process.env.JWT_SECRET || 'mysecretkey123'; 
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '48h' });
 
     req.session.user = payload;
@@ -114,7 +114,7 @@ export async function loginUser(req, res) {
       token, 
       role: user.role, 
       userId: user._id,
-      user: payload        // ✅ frontend can use this too
+      user: payload       
     });
   } catch (error) {
     console.log('Error in loginUser:', error);
@@ -270,25 +270,7 @@ export async function forgotPassword(req, res) {
 
     await user.save();
 
-    // Email sending temporarily disabled for development
-    // try {
-    //   await sendOtpEmail(user.email, user.firstName, otp);
-    // } catch (emailError) {
-    //   console.log('OTP email failed, falling back to generic sendEmail:', emailError.message);
-    //   const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${rawToken}`;
-    //   await sendEmail({
-    //     to: user.email,
-    //     subject: 'Password Reset',
-    //     html: `
-    //       <p>Hi ${user.firstName || user.name},</p>
-    //       <p>Your OTP is <strong>${otp}</strong> (expires in 10 min) or click the link below:</p>
-    //       <a href="${resetUrl}" style="padding:10px 20px;background:#e63757;color:#fff;border-radius:5px;text-decoration:none">
-    //         Reset Password
-    //       </a>
-    //     `,
-    //   });
-    // }
-
+    
     res.json({ message: 'OTP sent to your email' });
   } catch (error) {
     console.log(error);
@@ -314,17 +296,12 @@ export async function resetPassword(req, res) {
     user.password        = await bcrypt.hash(newPassword, 10);
     user.resetOtp        = null;
     user.resetOtpExpiry  = null;
-    // Also clear token-based fields if set
+    
     user.resetPasswordToken   = undefined;
     user.resetPasswordExpire  = undefined;
     await user.save();
 
-    // Email sending temporarily disabled for development
-    // try {
-    //   await sendPasswordResetSuccessEmail(user.email, user.firstName);
-    // } catch (emailError) {
-    //   console.log('Reset success email failed:', emailError.message);
-    // }
+   
 
     res.json({ message: 'Password reset successfully' });
   } catch (error) {
@@ -356,12 +333,7 @@ export async function resetPasswordByToken(req, res) {
     user.resetOtpExpiry      = null;
     await user.save();
 
-    // Email sending temporarily disabled for development
-    // try {
-    //   await sendPasswordResetSuccessEmail(user.email, user.firstName);
-    // } catch (emailError) {
-    //   console.log('Reset success email failed:', emailError.message);
-    // }
+    
 
     res.json({ message: 'Password reset successful' });
   } catch (error) {

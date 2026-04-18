@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'mysecretkey123'; // ✅ matches controller
+const JWT_SECRET = process.env.JWT_SECRET || 'mysecretkey123'; 
 
 export const verifyToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];

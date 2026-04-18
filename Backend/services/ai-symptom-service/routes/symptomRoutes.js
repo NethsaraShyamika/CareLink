@@ -9,7 +9,6 @@ const {
   getCheckById,
 } = require("../controllers/symptomController");
 
-// Rate limiter — prevent AI API abuse (max 10 checks per 15 min per IP)
 const symptomLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10,

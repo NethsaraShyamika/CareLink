@@ -21,7 +21,7 @@ const paymentSchema = new mongoose.Schema(
     // Payment details
     amount: {
       type: Number,
-      required: true, // in LKR
+      required: true, 
     },
     currency: {
       type: String,

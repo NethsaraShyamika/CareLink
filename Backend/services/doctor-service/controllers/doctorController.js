@@ -1,9 +1,7 @@
 import Doctor from "../models/doctor.js";
 
 
-// ==============================
-// 👤 PROFILE
-// ==============================
+
 
 // Create or Update Profile
 export const createOrUpdateProfile = async (req, res) => {
@@ -15,7 +13,7 @@ export const createOrUpdateProfile = async (req, res) => {
       doctor = await Doctor.findOneAndUpdate(
         { userId },
         req.body,
-        { returnDocument: 'after' }  // ✅ Use returnDocument instead of new
+        { returnDocument: 'after' }  
       );
       return res.json({ message: "Profile updated", doctor });
     }
@@ -78,9 +76,7 @@ export const getDoctorById = async (req, res) => {
 
 
 
-// ==============================
-// 📅 AVAILABILITY
-// ==============================
+
 
 // Update Availability
 export const updateAvailability = async (req, res) => {
@@ -93,7 +89,7 @@ export const updateAvailability = async (req, res) => {
         availabilityEndTime: req.body.availabilityEndTime,
         slotMinutes: req.body.slotMinutes,
       },
-      { returnDocument: 'after' }  // ✅ Change from { new: true } to { returnDocument: 'after' }
+      { returnDocument: 'after' }  
     );
 
     res.json({ message: "Availability updated", doctor });
@@ -120,9 +116,7 @@ export const getAvailability = async (req, res) => {
 
 
 
-// ==============================
-// 🟢 ADMIN VERIFICATION
-// ==============================
+
 
 // Get pending doctors
 export const getPendingDoctors = async (req, res) => {
@@ -145,7 +139,7 @@ export const verifyDoctor = async (req, res) => {
         verifiedBy: req.user.id,
         verifiedAt: new Date(),
       },
-      { returnDocument: 'after' }  // ✅ Change from { new: true } to { returnDocument: 'after' }
+      { returnDocument: 'after' }  
     );
 
     res.json({ message: "Doctor approved", doctor });
@@ -164,7 +158,7 @@ export const rejectDoctor = async (req, res) => {
         verifiedBy: req.user.id,
         verifiedAt: new Date(),
       },
-      { returnDocument: 'after' }  // ✅ Change from { new: true } to { returnDocument: 'after' }
+      { returnDocument: 'after' }  
     );
 
     res.json({ message: "Doctor rejected", doctor });
@@ -175,9 +169,7 @@ export const rejectDoctor = async (req, res) => {
 
 
 
-// ==============================
-// 🔍 SEARCH / LISTING
-// ==============================
+
 
 // Get all doctors (only approved)
 export const getAllDoctors = async (req, res) => {

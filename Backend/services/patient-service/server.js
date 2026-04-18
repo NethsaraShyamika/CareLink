@@ -11,7 +11,7 @@ import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import patientRoutes from './routes/patientRoutes.js';
 
-// HARDCODE THE SECRET - This is the single source of truth
+
 const JWT_SECRET = 'mysecretkey123';
 
 const app = express();
@@ -19,10 +19,10 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Make JWT_SECRET available globally through app.locals
+
 app.locals.JWT_SECRET = JWT_SECRET;
 
-// DEBUG ENDPOINT - Check JWT_SECRET
+
 app.get('/debug/config', (req, res) => {
     res.json({
         jwt_secret: JWT_SECRET,
@@ -31,7 +31,7 @@ app.get('/debug/config', (req, res) => {
     });
 });
 
-// TOKEN GENERATION ENDPOINT - Uses SAME secret
+
 app.get('/dev/token/:userId', (req, res) => {
     const token = jwt.sign(
         { 
@@ -39,11 +39,11 @@ app.get('/dev/token/:userId', (req, res) => {
             role: 'patient',
             email: `${req.params.userId}@test.com`
         },
-        JWT_SECRET, // Using hardcoded secret
+        JWT_SECRET, 
         { expiresIn: '24h' }
     );
     
-    // Verify it immediately to confirm it works
+
     try {
         const verified = jwt.verify(token, JWT_SECRET);
         console.log('✅ Token verified immediately after generation');

@@ -11,7 +11,7 @@ const seedUsers = async () => {
 
     console.log("MongoDB connected ✔");
 
-    // 🔥 optional cleanup (ONLY if you want fresh start)
+   
     await User.deleteMany({ email: { $in: ["admin@gmail.com", "d@gmail.com"] } });
 
     const adminPassword = await bcrypt.hash("Admin123", 10);

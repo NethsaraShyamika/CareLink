@@ -5,7 +5,7 @@ const symptomCheckSchema = new mongoose.Schema(
   {
     patientId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Patient", // If cross-service, can store as String and fetch via API
+      ref: "Patient", 
       required: true,
     },
     symptoms: {
@@ -66,7 +66,6 @@ const symptomCheckSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Index to make queries by patientId faster
 symptomCheckSchema.index({ patientId: 1, createdAt: -1 });
 
 module.exports = mongoose.model("SymptomCheck", symptomCheckSchema);

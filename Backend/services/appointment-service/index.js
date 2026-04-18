@@ -2,7 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import connectDB from "./config/db.js";
-import "./jobs/reminderJob.js"; // Start the reminder job when the service starts
+import "./jobs/reminderJob.js"; 
 import appointmentRoutes from "./routes/appointmentRoutes.js";
 
 // Load .env file
@@ -16,7 +16,7 @@ const app = express();
 // Middleware
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:5174"], // Allow frontend origins
+    origin: ["http://localhost:5173", "http://localhost:5174"], 
     credentials: true, // Allow credentials
   })
 );
